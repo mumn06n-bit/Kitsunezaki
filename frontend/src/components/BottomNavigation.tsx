@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
+import "./BottomNavigation.css"
 
 export default function BottomNavigation() {
   return (
-    <nav>
+    <nav className="bottomnavigation">
       <Link to="/data">データ</Link> |
       <Link to="/graph">グラフ</Link> |
       <Link to="/compare">比較</Link> |
