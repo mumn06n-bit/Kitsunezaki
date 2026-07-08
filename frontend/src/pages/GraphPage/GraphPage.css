@@ -1,0 +1,33 @@
+.data-page{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+}
+
+/* ���t�E���ԕ\�� */
+.date-area{
+    height:30vh;
+
+    background:#BAE0FF;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* �f�[�^�ꗗ */
+.data-area{
+
+    flex:1;
+
+    background:white;
+
+    padding:20px;
+}
+
+.data-area p{
+
+    font-size:22px;
+
+    margin:20px 0;
+}

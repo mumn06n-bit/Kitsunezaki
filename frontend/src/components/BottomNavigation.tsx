@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import "./BottomNavigation.css"
+import { Icons } from "@/components/materials";//アイコンのインポート
 
 export default function BottomNavigation() {
   return (
@@ -11,7 +12,7 @@ export default function BottomNavigation() {
 </NavLink>
 
       <NavLink to="/graph" className="nav-item">
-        グラフ
+        <Icons.ChartLine size={30} />
       </NavLink>
 
       <NavLink to="/compare" className="nav-item">
