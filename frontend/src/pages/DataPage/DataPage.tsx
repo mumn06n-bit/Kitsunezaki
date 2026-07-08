@@ -1,26 +1,21 @@
 import "./DataPage.css";
-import Header from "@/components/Header";
+import { Icons } from "@/components/materials";//アイコンのインポート
+import PageLayout from "@/components/PageLayout";
 
 export default function DataPage() {
   return (
-    <div className="data-page">
+    <PageLayout title="データ">
 
-      {/* タイトル */}
-      <header>
-        <Header title="データ" />
-      </header>
-
-      {/* 日付・時間 */}
       <section className="date-area">
-        <h2>2026年</h2>
+        <span>7月8日</span>
+        {/* アイコンの挿入 */}
+        <Icons.CalendarRange size={30} />
       </section>
 
-      {/* センサから取得したデータ */}
-      <main className="data-area">
-        <p>気温</p>
-        <p>水温</p>
-      </main>
+      <section className="data-area">
+        <span>気温</span>
+      </section>
 
-    </div>
+    </PageLayout>
   );
 }

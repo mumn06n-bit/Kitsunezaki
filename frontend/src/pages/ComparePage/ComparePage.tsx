@@ -1,3 +1,11 @@
+import PageLayout from "@/components/PageLayout";
+
 export default function ComparePage() {
-  return <h1>比較画面</h1>;
+  return (
+    <PageLayout title="比較">
+      <div>
+        比較画面
+      </div>
+    </PageLayout>
+  );
 }

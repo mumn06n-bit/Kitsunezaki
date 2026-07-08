@@ -1,3 +1,11 @@
+import PageLayout from "@/components/PageLayout";
+
 export default function GraphPage() {
-  return <h1>グラフ画面</h1>;
+  return (
+    <PageLayout title="グラフ">
+
+      グラフ画面
+
+    </PageLayout>
+  );
 }

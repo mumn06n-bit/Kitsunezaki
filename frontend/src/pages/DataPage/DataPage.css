@@ -1,33 +1,25 @@
-.data-page{
-    display:flex;
-    flex-direction:column;
-    height:100vh;
+/* 譌･莉倥�ｻ譎る俣陦ｨ遉ｺ */
+.date-area {
+    height: 30vh;
+
+    background: #BAE0FF;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* 日付・時間表示 */
-.date-area{
-    height:30vh;
+/* 繝�繝ｼ繧ｿ荳隕ｧ */
+.data-area {
+    flex: 1;
 
-    background:#BAE0FF;
+    background: white;
 
-    display:flex;
-    justify-content:center;
-    align-items:center;
+    padding: 20px;
 }
 
-/* データ一覧 */
-.data-area{
+.data-area p {
+    font-size: 22px;
 
-    flex:1;
-
-    background:white;
-
-    padding:20px;
-}
-
-.data-area p{
-
-    font-size:22px;
-
-    margin:20px 0;
+    margin: 20px 0;
 }
