@@ -1,9 +1,9 @@
 import {
-  CalendarRange,//カレンダー
-  Newspaper,//データ画面
-  ChartLine,//グラフ画面
-  ChartNoAxesCombined,//比較画面
-  Settings,//設定画面
+  CalendarRange,//繧ｫ繝ｬ繝ｳ繝繝ｼ
+  Newspaper,//繝�繝ｼ繧ｿ逕ｻ髱｢
+  ChartLine,//繧ｰ繝ｩ繝慕判髱｢
+  ChartNoAxesCombined,//豈碑ｼ�逕ｻ髱｢
+  Settings,//險ｭ螳夂判髱｢
 } from "lucide-react";
 
 export const Icons = {
@@ -13,3 +13,4 @@ export const Icons = {
   ChartNoAxesCombined,
   Settings,
 };
+

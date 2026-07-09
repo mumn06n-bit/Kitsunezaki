@@ -1,0 +1,14 @@
+:root {
+    /* メインカラー */
+    --primary: #3D76A4;
+    --secondary: #BAE0FF;
+    --white: #FFFFFF;
+
+    /* アイコン */
+    --inactive: #000000;
+    --active: #FFFFFF;
+
+    /* 文字 */
+    --text: #000000;
+    --text-white: #FFFFFF;
+}
