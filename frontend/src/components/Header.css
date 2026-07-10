@@ -1,12 +1,12 @@
 .header {
     height: 15vh;
-    background-color: #3D76A4;
+    background-color: var(--primary);
 
     display: flex;
     justify-content: center;
     align-items: center;
 
-    color: white;
+    color: var(--text-white);
 }
 
 .header h1 {

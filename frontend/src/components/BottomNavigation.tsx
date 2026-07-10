@@ -5,22 +5,20 @@ import { Icons } from "@/components/materials";//アイコンのインポート
 export default function BottomNavigation() {
   return (
     <nav className="bottom-navigation">
-      <NavLink
-        to="/data"
-        className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-  データ
-</NavLink>
+      <NavLink to="/data" className="nav-item">
+        <Icons.Newspaper size={30} />
+      </NavLink>
 
       <NavLink to="/graph" className="nav-item">
         <Icons.ChartLine size={30} />
       </NavLink>
 
       <NavLink to="/compare" className="nav-item">
-        比較
+        <Icons.ChartNoAxesCombined size={30} />
       </NavLink>
 
       <NavLink to="/settings" className="nav-item">
-        設定
+        <Icons.Settings size={30} />
       </NavLink>
     </nav>
   );

@@ -2,7 +2,7 @@
 .date-area {
     height: 30vh;
 
-    background: #BAE0FF;
+    background: var(--secondary);
 
     display: flex;
     justify-content: center;
@@ -10,10 +10,10 @@
 }
 
 /* データ一覧 */
-.data-area {
+.sensor-data-area {
     flex: 1;
 
-    background: white;
+    background: var(--white);
 
     padding: 20px;
 }
