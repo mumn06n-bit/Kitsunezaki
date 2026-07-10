@@ -5,12 +5,13 @@ import PageLayout from "@/components/PageLayout";
 export default function CompareSettingPage() {
   return (
     <PageLayout
-      title="”äŠrİ’è"
+      title="æ¯”è¼ƒè¨­å®š"
       showBackButton={true}
     >
 
-      {/* ”äŠrİ’è•\¦ƒGƒŠƒA */}
+      {/* æ¯”è¼ƒè¨­å®šè¡¨ç¤ºã‚¨ãƒªã‚¢ */}
       <section className="compare-setting-area">
+        
 
       </section>
 

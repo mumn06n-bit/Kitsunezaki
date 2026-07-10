@@ -1,0 +1,46 @@
+/* 全体の色味や位置など */
+.settingpage-area {
+    background: var(--secondary);
+    height: 100%;
+
+    padding: 20px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+/* 横線の位置など */
+.setting-divider {
+    border: none;
+    border-top: 1px solid var(--text);
+    margin: 40px 25px;
+}
+
+/* 適正値の位置など */
+.settingpage-title {
+
+    background: var(--secondary);
+    
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--text);
+    margin-top:10px;
+    margin-bottom: 30px;
+}
+
+.settingpage-label {
+    font-size: 2rem;
+    margin-left: 40px;
+}
+
+select {
+    width: 120px;
+    height: 40px;
+    font-size: 1.5rem;
+
+    padding-left: 7px;
+}
+
+label {
+    margin-right: 30px;
+}
