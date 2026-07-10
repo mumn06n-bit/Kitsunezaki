@@ -6,6 +6,7 @@ export default function BottomNavigation() {
   return (
     <nav className="bottom-navigation">
       <NavLink to="/data" className="nav-item">
+        {/* アイコン挿入 */}
         <Icons.Newspaper size={30} />
       </NavLink>
 
