@@ -23,3 +23,9 @@
 
     margin: 20px 0;
 }
+
+/* カレンダーアイコンの色設定 */
+.calendar-link {
+    color: var(--inactive);
+    text-decoration: none;
+}

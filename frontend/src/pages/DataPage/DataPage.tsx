@@ -1,5 +1,6 @@
 import "./DataPage.css";
 import { Icons } from "@/components/materials";//アイコンのインポート
+import { Link } from "react-router-dom";//カレンダーへの遷移
 import PageLayout from "@/components/PageLayout";
 
 export default function DataPage() {
@@ -9,8 +10,10 @@ export default function DataPage() {
       {/* 日付と時間を表示 */}
       <section className="date-area">
         <span>7月8日</span>
-        {/* アイコンの挿入 */}
-        <Icons.CalendarRange size={30} />
+        {/* カレンダーアイコンの挿入 */}
+        <Link to="/calendar" className="calendar-link">
+          <Icons.CalendarRange size={30} />
+        </Link>
       </section>
 
       {/* センサから取得したデータを表示 */}

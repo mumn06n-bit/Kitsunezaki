@@ -4,6 +4,7 @@ import DataPage from "./pages/DataPage/DataPage";
 import GraphPage from "./pages/GraphPage/GraphPage";
 import ComparePage from "./pages/ComparePage/ComparePage";
 import SettingsPage from "./pages/SettingPage/SettingPage";
+import CalendarPage from "./pages/DataPage/Calendar";//カレンダー
 
 import BottomNavigation from "./components/BottomNavigation";
 
@@ -13,7 +14,11 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<Navigate to="/data" replace />} />
+        
         <Route path="/data" element={<DataPage />} />
+        {/* カレンダーへの遷移 */}
+        <Route path="/calendar" element={<CalendarPage />} />
+
         <Route path="/graph" element={<GraphPage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/settings" element={<SettingsPage />} />
