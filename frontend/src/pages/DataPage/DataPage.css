@@ -1,12 +1,23 @@
 /* 日付・時間表示 */
 .date-area {
     height: 30vh;
-
     background: var(--secondary);
-
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.date-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+
+}
+
+.date-text {
+    font-size: 1.7rem;
 }
 
 /* データ一覧 */
@@ -22,6 +33,15 @@
     font-size: 22px;
 
     margin: 20px 0;
+}
+
+/* 右にデータ（単位）を表示する */
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 18px 0;
 }
 
 /* カレンダーアイコンの色設定 */
