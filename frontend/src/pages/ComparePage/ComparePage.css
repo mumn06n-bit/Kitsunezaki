@@ -1,4 +1,4 @@
-/* İ’èƒ{ƒ^ƒ“‚ğ‰EŠñ‚¹ */
+/* è¨­å®šãƒœã‚¿ãƒ³ã‚’å³å¯„ã› */
 .compare-header {
     display: flex;
     justify-content: flex-end;
@@ -6,7 +6,7 @@
     padding: 16px 20px;
 }
 
-/* İ’èƒ{ƒ^ƒ“ */
+/* è¨­å®šãƒœã‚¿ãƒ³ */
 .setting-button {
     padding: 8px 16px;
 
@@ -22,7 +22,7 @@
     cursor: pointer;
 }
 
-/* ”äŠr‰æ–Ê–{‘Ì */
+/* æ¯”è¼ƒç”»é¢æœ¬ä½“ */
 .compare-area {
     flex: 1;
 }
