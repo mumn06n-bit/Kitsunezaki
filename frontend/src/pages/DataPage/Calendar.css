@@ -1,0 +1,21 @@
+.calendar-header{
+    display: flex;
+    align-items: center;
+
+    padding: 15px;
+}
+
+.back-button{
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.calendar-area{
+
+    flex:1;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
