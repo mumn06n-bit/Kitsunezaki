@@ -13,14 +13,14 @@
 .graph-range-area {
     display: flex;
     justify-content: center;
-    margin-top: 12px;
+    margin-top: 0px;
 }
 
 
 /* 種類選択ボタン */
 .graph-select-button {
     width: 180px;
-    height: 45px;
+    height: 30px;
 
     background: var(--white);
     color: var(--black);
@@ -29,12 +29,15 @@
 
     font-size: 22px;
     cursor: pointer;
+
+    text-align: center; /* 文字を中央寄せにする */
+    text-align-last: center; /* Safari等のブラウザ対策 */
 }
 
 /* 年月日の外枠 */
 .graph-range-area {
-    width: 80%;
-    height: 45px;
+    width: 60%;
+    height: 30px;
 
     margin: 12px auto 0;
 
