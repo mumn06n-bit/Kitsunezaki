@@ -2,10 +2,11 @@
 import "./DataPage.css";
 import { Icons } from "@/components/materials";//アイコンのインポート
 import PageLayout from "@/components/PageLayout";
-import { Link } from "react-router-dom";//カレンダーへの遷移
 import { useState } from "react";
+import { Link } from "react-router-dom";//カレンダーへの遷移
+import { useLocation } from "react-router-dom";
 
-// 時間を配列で定義
+// 時間を30分刻みの配列で定義
 const times = Array.from({ length: 48 }, (_, i) => {
   const hour = Math.floor(i / 2);
   const minute = i % 2 === 0 ? "00" : "30";
@@ -26,9 +27,17 @@ const getLatestTime = () => {
 };
 
 export default function DataPage() {
-    const today = new Date();
-    const [time, setTime] = useState(getLatestTime());
+  // calendarPageから情報を受け取る
+  const location = useLocation();
+    // 選択された日付を管理
+const [selectedDate, setSelectedDate] = useState(
+  location.state?.selectedDate
+    ? new Date(location.state.selectedDate)
+    : new Date()
+);
 
+// 表示する時間を管理
+const [time, setTime] = useState(getLatestTime());
     const formatDate = (date: Date) => {
       const month  = date.getMonth() + 1; // 月は0から始まるので+1する
       const day = date.getDate();
@@ -44,14 +53,34 @@ export default function DataPage() {
       {/* 日付と時間を表示 */}
       <section className="date-area">
         <div className="date-icon">
-          {/* カレンダーアイコンの挿入 */}
-        <Link to="/calendar" className="calendar-link">
+           {/* カレンダーアイコンの挿入 */}
+        <Link to="/calendar" className="calendar-link" state={{ selectedDate }}>
           <Icons.CalendarRange size={30} />
         </Link>
+
         </div>
-        
+
+        {/* リロードボタン */}
+<button
+  className="reload-button"
+  onClick={() => {
+    // パソコンの現在日時を取得
+     // TODO: API実装後は、最新データの日時を取得する
+    const now = new Date();
+
+    // 日付を今日に更新
+    setSelectedDate(now);
+
+    // 時間を最新の30分単位に更新
+     // TODO: API実装後は、APIから取得した時刻を設定する
+    setTime(getLatestTime());
+  }}
+>
+  <Icons.RefreshCw size={24} />
+</button>
+
         <div className="date-text-group">
-          <span className="date-text">{formatDate(today)}</span>
+          <span className="date-text">{formatDate(selectedDate)}</span>
           <br />
           {/* 追加　時間を選択する */}
           <select
