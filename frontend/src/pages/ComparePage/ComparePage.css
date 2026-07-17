@@ -1,0 +1,28 @@
+/* 設定ボタンを右寄せ */
+.compare-header {
+    display: flex;
+    justify-content: flex-end;
+
+    padding: 16px 20px;
+}
+
+/* 設定ボタン */
+.setting-button {
+    padding: 8px 16px;
+
+    background-color: var(--primary);
+
+    color: var(--white);
+    text-decoration: none;
+
+    border-radius: 6px;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+/* 比較画面本体 */
+.compare-area {
+    flex: 1;
+}
