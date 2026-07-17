@@ -12,6 +12,7 @@ export default function CompareSettingPage() {
 
   // 種類
   const [sensorType, setSensorType] = useState("water");
+  const [correlationSensors, setCorrelationSensors] = useState<string[]>([]);
 
   // グラフ期間
   const [graphPeriod, setGraphPeriod] = useState("month");
@@ -50,6 +51,8 @@ export default function CompareSettingPage() {
 
     setCorrelationMode(settings.correlationMode);
     setSensorType(settings.sensorType);
+    setCorrelationSensors(settings.correlationSensors
+      ?? []);
     setGraphPeriod(settings.graphPeriod);
     setPeriods(settings.periods);
 
@@ -103,17 +106,46 @@ export default function CompareSettingPage() {
 
   };
 
+  const toggleCorrelationSensor = (sensor: string) => {
+
+    // 既に選択されている場合
+    if (correlationSensors.includes(sensor)) {
+
+      setCorrelationSensors(prev =>
+        prev.filter(item => item !== sensor)
+      );
+
+      return;
+    }
+
+    // 2個以上は追加しない
+    if (correlationSensors.length >= 2) return;
+
+    setCorrelationSensors(prev => [...prev, sensor]);
+
+  };
+
   // 保存
   const saveSettings = () => {
+
+    // 相関モードでの種類不足のエラーメッセージ
+    if (correlationMode && correlationSensors.length < 2) {
+      alert("種類を2つ選択してください。");
+      return;
+    }
+
+    // 期間不足のエラーメッセージ
+    if (periods.length === 0) {
+      alert("期間が設定されていません。");
+      return;
+    }
 
     const settings = {
 
       correlationMode,
-
       sensorType,
-
+      correlationSensors,
       graphPeriod,
-
       periods,
 
     };
@@ -152,67 +184,117 @@ export default function CompareSettingPage() {
         </div>
 
         {/* 種類 */}
-        <div className="setting-section">
 
-          <p className="section-title">種類</p>
+        {!correlationMode && (
+          <div className="setting-section">
 
-          <div className="radio-grid">
+            <p className="section-title">種類</p>
 
-            <label>
-              <input
-                type="radio"
-                name="sensor"
-                value="air"
-                checked={sensorType === "air"}
-                onChange={(e) =>
-                  setSensorType(e.target.value)
-                }
-              />
-              気温
-            </label>
+            <div className="radio-grid">
 
-            <label>
-              <input
-                type="radio"
-                name="sensor"
-                value="water"
-                checked={sensorType === "water"}
-                onChange={(e) =>
-                  setSensorType(e.target.value)
-                }
-              />
-              水温
-            </label>
+              <label>
+                <input
+                  type="radio"
+                  name="sensor"
+                  value="air"
+                  checked={sensorType === "air"}
+                  onChange={(e) =>
+                    setSensorType(e.target.value)
+                  }
+                />
+                気温
+              </label>
 
-            <label>
-              <input
-                type="radio"
-                name="sensor"
-                value="salt"
-                checked={sensorType === "salt"}
-                onChange={(e) =>
-                  setSensorType(e.target.value)
-                }
-              />
-              塩分濃度
-            </label>
+              <label>
+                <input
+                  type="radio"
+                  name="sensor"
+                  value="water"
+                  checked={sensorType === "water"}
+                  onChange={(e) =>
+                    setSensorType(e.target.value)
+                  }
+                />
+                水温
+              </label>
 
-            <label>
-              <input
-                type="radio"
-                name="sensor"
-                value="oxygen"
-                checked={sensorType === "oxygen"}
-                onChange={(e) =>
-                  setSensorType(e.target.value)
-                }
-              />
-              溶存酸素
-            </label>
+              <label>
+                <input
+                  type="radio"
+                  name="sensor"
+                  value="salt"
+                  checked={sensorType === "salt"}
+                  onChange={(e) =>
+                    setSensorType(e.target.value)
+                  }
+                />
+                塩分濃度
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  name="sensor"
+                  value="oxygen"
+                  checked={sensorType === "oxygen"}
+                  onChange={(e) =>
+                    setSensorType(e.target.value)
+                  }
+                />
+                溶存酸素
+              </label>
+
+            </div>
+
+            {correlationMode && correlationSensors.length < 2 && (
+              <p className="error-message">
+                種類が足りません
+              </p>
+            )}
+
+          </div>
+        )}
+
+        {correlationMode && (
+
+          <div className="setting-section">
+
+            <p className="section-title">種類</p>
+
+            <div className="radio-grid">
+
+              {[
+                { value: "air", label: "気温" },
+                { value: "water", label: "水温" },
+                { value: "salt", label: "塩分濃度" },
+                { value: "oxygen", label: "溶存酸素" },
+              ].map((sensor) => (
+
+                <label key={sensor.value}>
+
+                  <input
+                    type="checkbox"
+                    checked={correlationSensors.includes(sensor.value)}
+                    onChange={() =>
+                      toggleCorrelationSensor(sensor.value)
+                    }
+                    disabled={
+                      correlationSensors.length >= 2 &&
+                      !correlationSensors.includes(sensor.value)
+                    }
+                  />
+
+                  {sensor.label}
+
+                </label>
+
+              ))}
+
+            </div>
 
           </div>
 
-        </div>
+        )}
 
         <hr className="setting-divider" />
 
@@ -311,6 +393,7 @@ export default function CompareSettingPage() {
 
           ))}
 
+          {/* 期間を５コまでにするやつ */}
           {periods.length < 5 && (
 
             <button
