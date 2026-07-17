@@ -19,3 +19,100 @@
     justify-content:center;
     align-items:center;
 }
+
+/* 選択中の日のスタイル（青い正方形の枠線で囲う） */
+.react-calendar__tile--active {
+    background: transparent !important;   
+    border: 2px solid var(--cblue) !important;  
+    border-radius: 4px !important;        
+    box-shadow: none !important;          
+    color: var(--cblue) !important;           
+    font-weight: bold;
+}
+
+/* 枠線を正方形に保つ調整 */
+.react-calendar__tile {
+    aspect-ratio: 1 / 1 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 日曜日を赤にする */
+.react-calendar__month-view__weekdays__weekday:nth-child(7) abbr { color: var(--cred) !important; }
+
+/* 土曜日を青にする */
+.react-calendar__month-view__weekdays__weekday:nth-child(6) abbr { color: var(--cblue) !important; }
+
+/* 日曜日の列の数字を赤にする */
+.react-calendar__month-view__days__day:nth-child(7n)   { color: var(--cred) !important; }
+
+/* 月曜の列 (1マス目, 8マス目...) */
+.react-calendar__month-view__days__day:nth-child(7n+1) { color: var(--cblack) !important; }
+
+/* 火曜の列 (2マス目, 9マス目...) */
+.react-calendar__month-view__days__day:nth-child(7n+2) { color: var(--cblack) !important; }
+
+/* 水曜の列 (3マス目, 10マス目...) */
+.react-calendar__month-view__days__day:nth-child(7n+3) { color: var(--cblack) !important; }
+
+/* 木曜の列 (4マス目, 11マス目...) */
+.react-calendar__month-view__days__day:nth-child(7n+4) { color: var(--cblack) !important; }
+
+/* 金曜の列 (5マス目, 12マス目...) */
+.react-calendar__month-view__days__day:nth-child(7n+5) { color: var(--cblack) !important; }
+
+/* 土曜日の列の数字を青にする */
+.react-calendar__month-view__days__day:nth-child(7n+6) { color: var(--cblue) !important; }
+
+.ok-button {
+    background-color: var(--primary);
+    color: var(--white);
+    padding: 12px 22px;  
+    font-size: 18px;         
+    font-weight: bold;         
+}
+
+/* ナビゲーション全体 */
+.react-calendar__navigation {
+    height: 60px;
+    margin-bottom: 10px;
+    background-color: var(--secondary) ;
+}
+
+/* 年月 大きく*/
+.react-calendar__navigation__label {
+    font-size: 20px !important;
+    font-weight: bold;
+}
+
+/* 矢印 大きく*/
+.react-calendar__navigation button:disabled {
+    background-color: var(--secondary);
+    color: var(--cblack);
+    opacity: 1;
+}
+
+/* ナビゲーションボタンのクリック・タップ時の痕跡を消す */
+/* ナビゲーションボタン（矢印・年月） */
+.react-calendar__navigation button {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    color: var(--cblack);
+
+    font-size: 35px;   /* 矢印を大きく */
+    font-weight: bold;
+}
+
+/* マウスを乗せたとき、クリックした状態が残っているとき、押し込んでいる瞬間 */
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus,
+.react-calendar__navigation button:active {
+    background-color: var(--secondary) !important;
+}
+
+.react-calendar__navigation button:disabled:focus {
+    background-color: var(--secondary) !important;
+    outline: none !important;
+}

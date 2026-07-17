@@ -20,6 +20,10 @@
     font-size: 1.7rem;
 }
 
+.date-text {
+    font-size: 1.7rem;
+}
+
 /* データ一覧 */
 .sensor-data-area {
     flex: 1;
@@ -48,4 +52,18 @@
 .calendar-link {
     color: var(--inactive);
     text-decoration: none;
+}
+
+/* リロードアイコン表示 */
+.reload-button {
+    position: absolute;
+    right: 15px;
+    bottom: 15px;
+
+    background: none;
+    border: none;
+    padding: 0;
+
+    color: var(--inactive);
+    cursor: pointer;
 }
