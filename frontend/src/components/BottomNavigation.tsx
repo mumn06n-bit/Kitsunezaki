@@ -21,7 +21,7 @@ export default function BottomNavigation() {
         to="/data"
         className={isDataActive ? "nav-item active" : "nav-item"}
       >
-        <Icons.Newspaper size={30} />
+        <Icons.Newspaper size={40} />
       </NavLink>
 
       <NavLink
@@ -30,14 +30,14 @@ export default function BottomNavigation() {
           isActive ? "nav-item active" : "nav-item"
         }
       >
-        <Icons.ChartLine size={30} />
+        <Icons.ChartLine size={40} />
       </NavLink>
 
       <NavLink
         to="/compare"
         className={isCompareActive ? "nav-item active" : "nav-item"}
       >
-        <Icons.ChartNoAxesCombined size={30} />
+        <Icons.ChartNoAxesCombined size={40} />
       </NavLink>
 
       <NavLink
@@ -46,7 +46,7 @@ export default function BottomNavigation() {
           isActive ? "nav-item active" : "nav-item"
         }
       >
-        <Icons.Settings size={30} />
+        <Icons.Settings size={40} />
       </NavLink>
 
     </nav>

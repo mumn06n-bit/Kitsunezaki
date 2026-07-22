@@ -1,18 +1,14 @@
-/* ==========================================
-   SettingPage.css
-   ========================================== */
-
 /* 1. ページ全体を水色の背景にして、程よい余白を作る */
 .setting-page-container {
   background-color: var(--secondary); /* colors.css の水色 #BAE0FF */
-  min-height: 100%; 
+  /* min-height: 100%; */
   padding: 20px 0;                    /* 上下の余白 */
   display: flex;
   flex-direction: column;
   gap: 0px;                          /* 項目と項目の間のすき間 */
 }
 
-/* 2. 1行ごとの設定（ここが左右両端に引き離すキモ！） */
+/* 2. 1行ごとの設定 */
 .setting-row {
   display: flex;
   justify-content: space-between;     /* ★ラベルを左端、セレクトを右端に配置 */
@@ -51,44 +47,36 @@
   margin: 8px 24px;                     /* 左右の余白を他の行（24px）と揃える */
 }
 
+/* 5. 設定項目のタイトル（「センサー設定」など） */
 .setting-title {
     color: var(--text);
     font-size: 20px;
     font-weight: bold;
-
     padding: 0 24px;   /* 左端をsetting-rowと揃える */
-
     margin-top: 5px;
     margin-bottom: 8px;
 }
 
 .save-button-area {
-    margin-top: auto;      /* 一番下へ押し下げる */
+    margin-top: 0;
     display: flex;
     justify-content: center;
-
-    padding: 30px;
+    padding: 35px;
 }
 
 /* ボタンのデザイン */
 .save-button {
     width: 180px;
     height: 50px;
-
     font-size: 18px;
     font-weight: bold;
-
     background-color: var(--primary);
     color: var(--text-white);
-
     border: none;
     border-radius: 12px;
-
     cursor: pointer;
 }
 
 .save-button:hover {
-
-    opacity: 0.9;
-
+  opacity: 0.9;
 }

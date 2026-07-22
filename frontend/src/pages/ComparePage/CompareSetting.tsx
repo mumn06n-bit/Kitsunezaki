@@ -445,7 +445,7 @@ export default function CompareSettingPage() {
                     )
                   }
                 >
-                  {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
+                  {Array.from({ length: 11 }, (_, i) => 2026 + i).map((year) => (
                     <option
                       key={year}
                       value={year}
