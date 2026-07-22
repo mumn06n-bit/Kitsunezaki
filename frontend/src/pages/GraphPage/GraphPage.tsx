@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PageLayout from "@/components/PageLayout";
+import GraphChart from "./GraphChart.tsx";
 import "./GraphPage.css";
 
 export default function GraphPage() {
@@ -55,6 +56,7 @@ export default function GraphPage() {
 
       <section className="graph-area">
         {/* グラフがここに */}
+             <GraphChart /> 
 
       </section>
 
