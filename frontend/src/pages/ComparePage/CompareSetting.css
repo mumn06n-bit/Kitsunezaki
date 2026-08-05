@@ -193,6 +193,7 @@
     cursor: pointer;
 }
 
+/* エラーメッセージ */
 .error-message {
     margin-top: 10px;
 
@@ -201,4 +202,41 @@
     font-size: 15px;
 
     font-weight: bold;
+}
+
+/*  */
+.period-select-area{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    flex:1;
+
+}
+
+/*  */
+.period-select-area select{
+
+    width:58px;
+
+    height:32px;
+
+    text-align:center;
+
+    font-size:15px;
+
+    padding: 2px;
+
+}
+
+/*  */
+.period-select-area select:disabled{
+
+    background:#dddddd;
+
+    color:#666666;
+
 }

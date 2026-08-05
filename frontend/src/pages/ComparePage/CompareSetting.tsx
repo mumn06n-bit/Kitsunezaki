@@ -5,6 +5,7 @@ import PageLayout from "@/components/PageLayout";
 
 export default function CompareSettingPage() {
 
+  // ナビゲーション
   const navigate = useNavigate();
 
   // 相関モード
@@ -22,12 +23,16 @@ export default function CompareSettingPage() {
     {
       id: 1,
       color: "#ff6b6b",
-      date: "2026-05-01",
+      year: 2026,
+      month: 5,
+      day: 1,
     },
     {
       id: 2,
       color: "#6ba8ff",
-      date: "2026-06-01",
+      year: 2026,
+      month: 6,
+      day: 1,
     },
   ]);
 
@@ -74,7 +79,9 @@ export default function CompareSettingPage() {
     const newPeriod = {
       id: Date.now(),
       color: newColor,
-      date: "2026-07-01",
+      year: 2026,
+      month: 7,
+      day: 1,
     };
 
     setPeriods(prev => [...prev, newPeriod]);
@@ -93,19 +100,64 @@ export default function CompareSettingPage() {
   // 日付変更
   const updatePeriodDate = (
     id: number,
-    date: string
+    key: "year" | "month" | "day",
+    value: number
   ) => {
 
     setPeriods(prev =>
       prev.map(period =>
         period.id === id
-          ? { ...period, date }
+          ? {
+            ...period, [key]: value,
+            day:
+              key === "year" || key === "month"
+                ? Math.min(
+                  period.day,
+                  getDaysInMonth(
+                    key === "year" ? value : period.year,
+                    key === "month" ? value : period.month
+                  )
+                )
+                : value,
+          }
           : period
       )
     );
 
   };
 
+  // 月の日数を取得する関数
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  // 重複期間の判定
+  const hasDuplicatePeriods = () => {
+
+    const keys = periods.map((period) => {
+
+      switch (graphPeriod) {
+
+        case "year":
+          return `${period.year}`;
+
+        case "month":
+          return `${period.year}-${period.month}`;
+
+        case "day":
+          return `${period.year}-${period.month}-${period.day}`;
+
+        default:
+          return "";
+      }
+
+    });
+
+    return new Set(keys).size !== keys.length;
+
+  };
+
+  // 相関モードでの種類選択
   const toggleCorrelationSensor = (sensor: string) => {
 
     // 既に選択されている場合
@@ -125,21 +177,31 @@ export default function CompareSettingPage() {
 
   };
 
-  // 保存
+  // 設定保存
   const saveSettings = () => {
 
     // 相関モードでの種類不足のエラーメッセージ
-    if (correlationMode && correlationSensors.length < 2) {
+    if (
+      correlationMode &&
+      correlationSensors.length < 2
+    ) {
       alert("種類を2つ選択してください。");
       return;
     }
 
-    // 期間不足のエラーメッセージ
+    // 期間が設定されていない場合のエラーメッセージ
     if (periods.length === 0) {
       alert("期間が設定されていません。");
       return;
     }
 
+    // 期間が重複している場合のエラーメッセージ
+    if (hasDuplicatePeriods()) {
+      alert("期間が重複しています。");
+      return;
+    }
+　
+    // 設定を保存
     const settings = {
 
       correlationMode,
@@ -150,6 +212,7 @@ export default function CompareSettingPage() {
 
     };
 
+    // localStorageに保存
     localStorage.setItem(
       "compareSettings",
       JSON.stringify(settings)
@@ -164,7 +227,7 @@ export default function CompareSettingPage() {
       title="比較設定"
       showBackButton={true}
     >
-
+      {/* 設定エリア */}
       <section className="compare-setting-area">
 
         {/* 相関モード */}
@@ -184,7 +247,6 @@ export default function CompareSettingPage() {
         </div>
 
         {/* 種類 */}
-
         {!correlationMode && (
           <div className="setting-section">
 
@@ -255,6 +317,7 @@ export default function CompareSettingPage() {
           </div>
         )}
 
+        {/* 相関モードでの種類選択 */}
         {correlationMode && (
 
           <div className="setting-section">
@@ -369,16 +432,83 @@ export default function CompareSettingPage() {
                 }}
               />
 
-              <input
-                type="date"
-                value={period.date}
-                onChange={(e) =>
-                  updatePeriodDate(
-                    period.id,
-                    e.target.value
-                  )
-                }
-              />
+              <div className="period-select-area">
+
+                {/* 年 */}
+                <select
+                  value={period.year}
+                  onChange={(e) =>
+                    updatePeriodDate(
+                      period.id,
+                      "year",
+                      Number(e.target.value)
+                    )
+                  }
+                >
+                  {Array.from({ length: 11 }, (_, i) => 2026 + i).map((year) => (
+                    <option
+                      key={year}
+                      value={year}
+                    >
+                      {year}
+                    </option>
+                  ))}
+                </select>
+
+                <span>年</span>
+
+                {/* 月 */}
+                <select
+                  value={period.month}
+                  disabled={graphPeriod === "year"}
+                  onChange={(e) =>
+                    updatePeriodDate(
+                      period.id,
+                      "month",
+                      Number(e.target.value)
+                    )
+                  }
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                    <option
+                      key={month}
+                      value={month}
+                    >
+                      {month}
+                    </option>
+                  ))}
+                </select>
+
+                <span>月</span>
+
+                {/* 日 */}
+                <select
+                  value={period.day}
+                  disabled={
+                    graphPeriod === "year" ||
+                    graphPeriod === "month"
+                  }
+                  onChange={(e) =>
+                    updatePeriodDate(
+                      period.id,
+                      "day",
+                      Number(e.target.value)
+                    )
+                  }
+                >
+                  {Array.from({ length: getDaysInMonth(period.year, period.month) }, (_, i) => i + 1).map((day) => (
+                    <option
+                      key={day}
+                      value={day}
+                    >
+                      {day}
+                    </option>
+                  ))}
+                </select>
+
+                <span>日</span>
+
+              </div>
 
               <button
                 className="delete-button"
