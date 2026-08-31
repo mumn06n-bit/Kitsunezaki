@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./ComparePage.css";
 import PageLayout from "@/components/PageLayout";
+import CompareChart from "./CompareChart";
 
 export default function ComparePage() {
 
@@ -110,8 +111,12 @@ export default function ComparePage() {
 
       </section>
 
-      {/* グラフ表示エリア（後で実装） */}
+      {/* グラフ表示エリア */}
       <section className="compare-area">
+
+        {settings && !settings.correlationMode && (
+          <CompareChart settings={settings} />
+        )}
 
       </section>
 
