@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import "./ComparePage.css";
 import PageLayout from "@/components/PageLayout";
 import CompareChart from "./CompareChart";
+import CompareScatter from "./CompareScatter";
 
 export default function ComparePage() {
 
@@ -114,8 +115,14 @@ export default function ComparePage() {
       {/* グラフ表示エリア */}
       <section className="compare-area">
 
+        {/* 相関モード OFF */}
         {settings && !settings.correlationMode && (
           <CompareChart settings={settings} />
+        )}
+
+        {/* 相関モード ON */}
+        {settings && settings.correlationMode && (
+          <CompareScatter settings={settings} />
         )}
 
       </section>
