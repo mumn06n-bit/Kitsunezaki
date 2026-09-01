@@ -226,6 +226,7 @@ export default function CompareSettingPage() {
     <PageLayout
       title="比較設定"
       showBackButton={true}
+      className="compare-setting-page"
     >
       {/* 設定エリア */}
       <section className="compare-setting-area">

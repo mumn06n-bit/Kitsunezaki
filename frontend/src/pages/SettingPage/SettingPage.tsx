@@ -41,7 +41,7 @@ export default function SettingPage() {
 
   
   return (
-    <PageLayout title="設定">
+    <PageLayout title="設定" className="setting-page">
       <div className="setting-page-container">
         {/* DOセンサ */}
         <div className="setting-row">
