@@ -177,7 +177,7 @@ export default function CompareScatter({
         type: "value",
         name: getSensorNameByValue(axes.y),
         nameLocation: "middle",
-        nameGap: 45,
+        nameGap: 35,
       },
 
       series: settings.periods.map((period: any) => {

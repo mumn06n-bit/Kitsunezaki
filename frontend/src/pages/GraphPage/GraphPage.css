@@ -20,7 +20,7 @@
 /* 種類選択ボタン */
 .graph-select-button {
     width: 180px;
-    height: 30px;
+    height: 35px;
 
     background: var(--white);
     color: var(--black);

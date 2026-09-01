@@ -38,7 +38,7 @@ export default function GraphChart({
             left: 35,
             right: 20,
             top: 30,
-            bottom: 60,
+            bottom: 0,
         },
 
         xAxis: {
