@@ -72,7 +72,7 @@ export default function CompareChart({ settings }: { settings: CompareSettings }
 
     // グラフ本体まわりの余白
     grid: {
-      left: 55,
+      left: 35,
       right: 20,
       top: 35,
       bottom: 70,

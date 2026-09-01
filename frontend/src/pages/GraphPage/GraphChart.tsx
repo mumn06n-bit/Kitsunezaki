@@ -35,7 +35,7 @@ export default function GraphChart({
     const option = {
 
         grid: {
-            left: 55,
+            left: 35,
             right: 20,
             top: 30,
             bottom: 60,

@@ -531,7 +531,7 @@ export default function CompareSettingPage() {
               className="add-period-button"
               onClick={addPeriod}
             >
-              ＋期間を追加
+              ＋ 期間を追加
             </button>
 
           )}
