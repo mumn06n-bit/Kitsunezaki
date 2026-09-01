@@ -79,3 +79,8 @@
     color: var(--inactive);
     margin-top: 1px;
 }
+
+/* Safariのために下部に余白を持たせる */
+.data-last {
+    padding-bottom: 10vh;
+}
