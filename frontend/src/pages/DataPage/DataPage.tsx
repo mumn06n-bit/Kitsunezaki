@@ -137,14 +137,16 @@ export default function DataPage() {
       </section>
 
       <section className="sensor-data-area">
-  <div className="data-row">
-    <div>
-      <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
-    </div>
-
-    <span>mg/L</span>
-  </div>
-</section>
+        <section className="sensor-data-area data-last">
+          <div className="data-row">
+            <div>
+              <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
+            </div>
+            
+            <span>mg/L</span>
+          </div>
+        </section>
+      </section>
 
     </PageLayout>
   );
