@@ -1,9 +1,7 @@
 .page {
     display: flex;
     flex-direction: column;
-
-    /* 最低でも高さ90、あとは内容に合わせて自動で長さを調整 */
-    height: calc(90vh);
+    min-height: 100dvh;
 }
 
 .page-content {
@@ -14,4 +12,6 @@
 
     overflow-y: auto;
     background-color: var(--secondary);
+
+    padding-bottom: 80px;
 }
