@@ -3,7 +3,7 @@
 }
 /* 日付・時間表示 */
 .date-area {
-    height: 25vh;
+    height: 22vh;
     /* padding: 40px 20px; */
     background: var(--secondary);
     display: flex;
@@ -29,7 +29,7 @@
 .sensor-data-area {
     flex: 1;
     background: var(--white);
-    padding: 25px 40px 0px 40px;
+    padding: 10px 30px 0px 30px;
 }
 
 .data-area p {
