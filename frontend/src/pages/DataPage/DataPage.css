@@ -1,14 +1,14 @@
 /* 日付・時間表示 */
 .date-area {
-    height: 30vh;
-    /* padding: 40px 20px; */
+    height: 40vh;
+    padding: 40px 20px;
     background: var(--secondary);
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
     position: relative;
-    /* min-height: 140px; */
+    min-height: 140px;
 }
 
 .date-icon {
