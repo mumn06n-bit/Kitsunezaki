@@ -1,5 +1,5 @@
 /* 種類選択と期間選択の背景色 */
-.graph-menu{
+.graph-menu {
 
     background: var(--secondary);
 
@@ -30,8 +30,10 @@
     font-size: 22px;
     cursor: pointer;
 
-    text-align: center; /* 文字を中央寄せにする */
-    text-align-last: center; /* Safari等のブラウザ対策 */
+    text-align: center;
+    /* 文字を中央寄せにする */
+    text-align-last: center;
+    /* Safari等のブラウザ対策 */
 }
 
 /* 年月日の外枠 */
@@ -77,6 +79,6 @@
     padding: 10px;
 
     background: var(--white);
-    overflow-x:auto;
+    overflow-x: auto;
 
 }
