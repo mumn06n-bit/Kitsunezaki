@@ -41,7 +41,7 @@ export default function DataPage() {
   const [outsideTemp, setOutsideTemp] = useState<number | null>(null);
   const [waterTemp, setWaterTemp] = useState<number | null>(null);
   const [salinity, setSalinity] = useState<number | null>(null);
-  const [do1, setDo1] = useState<number | null>(null);
+  const [doValue, setDoValue] = useState<number | null>(null);
   //---ここまで-----------------------------------
 
   // calendarPageから日付、時間を受け取る
@@ -145,16 +145,28 @@ export default function DataPage() {
   }, [selectedDate, time]);
 
   useEffect(() => {
-    const fetchDo1Data = async () => {
+    const fetchDoData = async () => {
       try {
-        const response = await fetch("/api/do1");
+        let apiUrl = "";
+
+        if (doSensor === "DO01") {
+          apiUrl = "/api/do1";
+        } else if (doSensor === "DO03") {
+          apiUrl = "/api/do3";
+        } else {
+          setDoValue(null);
+          return;
+        }
+
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.text();
-        console.log("APIから取得したデータ（DO1）:", data);//デバッグ用
+        //dataの後ろに、選ばれているDOの種類を記載したいのですが、書き方がわかりません；；
+        console.log(`APIから取得したデータ（${doSensor}）:`, data,);//デバッグ用
 
         const parsed = Papa.parse(data, {
           header: false,
@@ -163,15 +175,15 @@ export default function DataPage() {
 
         const rows = parsed.data as string[][];
 
-        console.log("取得した行数（DO1）:", rows.length);//デバッグ用
-        console.log("先頭の行（DO1）:", rows[0]);//デバッグ用
+        console.log(`取得した行（${doSensor}）:`, rows.length);//デバッグ用
+        console.log(`先頭の行（${doSensor}）:`, rows[0]);//デバッグ用
 
         // 選択されている日時に一致するデータを探す
         const targetDate = new Date(selectedDate);
         const targetDateString =
           `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
 
-        console.log("探している日時（DO1）:", targetDateString, time);//デバッグ用
+        console.log(`探している日時（${doSensor}）:`, targetDateString, time);//デバッグ用
 
         const targetRow = rows.find((row) => {
           if (!row[1]) return false;
@@ -195,23 +207,23 @@ export default function DataPage() {
           );
         });
 
-        console.log("一致した行（DO1）:", targetRow);//デバッグ用
+        console.log(`一致した行（${doSensor}）:`, targetRow);//デバッグ用
 
         if (targetRow) {
-          setDo1(Number(targetRow[6]));
+          setDoValue(Number(targetRow[6]));
         } else {
-          setDo1(null);
+          setDoValue(null);
         }
 
       } catch (error) {
         console.error("DO1号機データの取得に失敗しました:", error);
 
-        setDo1(null);
+        setDoValue(null);
       }
     };
 
-    fetchDo1Data();
-  }, [selectedDate, time]);
+    fetchDoData();
+  }, [selectedDate, time, doSensor]);
   //---ここまで-----------------------------------
   return (
     <PageLayout title="データ">
@@ -276,21 +288,21 @@ export default function DataPage() {
         <section className="sensor-data-area">
           <div className="data-row">
             <span>気温</span>
-            <span>{outsideTemp}  ℃</span>
+            <span>{outsideTemp !== null ? `${outsideTemp}  ℃` : "データなし"}</span>
           </div>
         </section>
 
         <section className="sensor-data-area">
           <div className="data-row">
             <span>水温</span>
-            <span>{waterTemp}  ℃</span>
+            <span>{waterTemp !== null ? `${waterTemp}  ℃` : "データなし"}</span>
           </div>
         </section>
 
         <section className="sensor-data-area">
           <div className="data-row">
             <span>塩分濃度</span>
-            <span>{salinity}  ‰</span>
+            <span>{salinity !== null ? `${salinity}  ‰` : "データなし"}</span>
           </div>
         </section>
 
@@ -299,7 +311,7 @@ export default function DataPage() {
             <div>
               <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
             </div>
-            <span>{do1}  mg/L</span>
+            <span> {doValue !== null ? `${doValue}  mg/L` : "データなし"}</span>
           </div>
         </section>
       </section>
