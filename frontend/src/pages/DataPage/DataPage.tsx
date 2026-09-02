@@ -147,6 +147,8 @@ export default function DataPage() {
   useEffect(() => {
     const fetchDoData = async () => {
       try {
+        // センサーを切り替えたら、まず現在の表示値を消す
+        setDoValue(null);
         let apiUrl = "";
 
         if (doSensor === "DO01") {
@@ -288,21 +290,21 @@ export default function DataPage() {
         <section className="sensor-data-area">
           <div className="data-row">
             <span>気温</span>
-            <span>{outsideTemp !== null ? `${outsideTemp}  ℃` : "データなし"}</span>
+            <span>{outsideTemp}  ℃</span>
           </div>
         </section>
 
         <section className="sensor-data-area">
           <div className="data-row">
             <span>水温</span>
-            <span>{waterTemp !== null ? `${waterTemp}  ℃` : "データなし"}</span>
+            <span>{waterTemp}  ℃</span>
           </div>
         </section>
 
         <section className="sensor-data-area">
           <div className="data-row">
             <span>塩分濃度</span>
-            <span>{salinity !== null ? `${salinity}  ‰` : "データなし"}</span>
+            <span>{salinity}  ‰</span>
           </div>
         </section>
 
@@ -311,7 +313,7 @@ export default function DataPage() {
             <div>
               <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
             </div>
-            <span> {doValue !== null ? `${doValue}  mg/L` : "データなし"}</span>
+            <span> {doValue !== null ? `${doValue}  mg/L` : "  mg/L"}</span>
           </div>
         </section>
       </section>
