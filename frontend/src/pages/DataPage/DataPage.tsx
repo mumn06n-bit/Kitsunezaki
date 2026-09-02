@@ -78,6 +78,7 @@ export default function DataPage() {
         }
 
         const data = await response.text();
+        console.log("APIから取得したデータ:", data);//デバッグ用
 
         const parsed = Papa.parse(data, {
           header: false,
@@ -86,10 +87,15 @@ export default function DataPage() {
 
         const rows = parsed.data as string[][];
 
+        console.log("取得した行数:", rows.length);//デバッグ用
+        console.log("先頭の行:", rows[0]);//デバッグ用
+
         // 選択されている日時に一致するデータを探す
         const targetDate = new Date(selectedDate);
         const targetDateString =
           `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+
+        console.log("探している日時:", targetDateString, time);//デバッグ用
 
         const targetRow = rows.find((row) => {
           if (!row[1]) return false;
@@ -112,6 +118,8 @@ export default function DataPage() {
             jstTime === time
           );
         });
+
+        console.log("一致した行:", targetRow);//デバッグ用
 
         if (targetRow) {
           setOutsideTemp(Number(targetRow[3]));
