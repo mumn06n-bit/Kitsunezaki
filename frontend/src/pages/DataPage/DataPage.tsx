@@ -41,6 +41,7 @@ export default function DataPage() {
   const [outsideTemp, setOutsideTemp] = useState<number | null>(null);
   const [waterTemp, setWaterTemp] = useState<number | null>(null);
   const [salinity, setSalinity] = useState<number | null>(null);
+  const [do1, setDo1] = useState<number | null>(null);
   //---ここまで-----------------------------------
 
   // calendarPageから日付、時間を受け取る
@@ -78,7 +79,7 @@ export default function DataPage() {
         }
 
         const data = await response.text();
-        console.log("APIから取得したデータ:", data);//デバッグ用
+        console.log("APIから取得したデータ（塩分）:", data);//デバッグ用
 
         const parsed = Papa.parse(data, {
           header: false,
@@ -87,15 +88,15 @@ export default function DataPage() {
 
         const rows = parsed.data as string[][];
 
-        console.log("取得した行数:", rows.length);//デバッグ用
-        console.log("先頭の行:", rows[0]);//デバッグ用
+        console.log("取得した行数（塩分）:", rows.length);//デバッグ用
+        console.log("先頭の行（塩分）:", rows[0]);//デバッグ用
 
         // 選択されている日時に一致するデータを探す
         const targetDate = new Date(selectedDate);
         const targetDateString =
           `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
 
-        console.log("探している日時:", targetDateString, time);//デバッグ用
+        console.log("探している日時（塩分）:", targetDateString, time);//デバッグ用
 
         const targetRow = rows.find((row) => {
           if (!row[1]) return false;
@@ -119,7 +120,7 @@ export default function DataPage() {
           );
         });
 
-        console.log("一致した行:", targetRow);//デバッグ用
+        console.log("一致した行（塩分）:", targetRow);//デバッグ用
 
         if (targetRow) {
           setOutsideTemp(Number(targetRow[3]));
@@ -141,6 +142,75 @@ export default function DataPage() {
     };
 
     fetchSalinityData();
+  }, [selectedDate, time]);
+
+  useEffect(() => {
+    const fetchDo1Data = async () => {
+      try {
+        const response = await fetch("/api/do1");
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.text();
+        console.log("APIから取得したデータ（DO1）:", data);//デバッグ用
+
+        const parsed = Papa.parse(data, {
+          header: false,
+          skipEmptyLines: true,
+        });
+
+        const rows = parsed.data as string[][];
+
+        console.log("取得した行数（DO1）:", rows.length);//デバッグ用
+        console.log("先頭の行（DO1）:", rows[0]);//デバッグ用
+
+        // 選択されている日時に一致するデータを探す
+        const targetDate = new Date(selectedDate);
+        const targetDateString =
+          `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+
+        console.log("探している日時（DO1）:", targetDateString, time);//デバッグ用
+
+        const targetRow = rows.find((row) => {
+          if (!row[1]) return false;
+
+          const utcDate = new Date(row[1]);
+
+          // APIの日時を日本時間に変換
+          const jstDate = utcDate.toLocaleDateString("sv-SE", {
+            timeZone: "Asia/Tokyo",
+          });
+
+          const jstTime = utcDate.toLocaleTimeString("en-GB", {
+            timeZone: "Asia/Tokyo",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          return (
+            jstDate === targetDateString &&
+            jstTime === time
+          );
+        });
+
+        console.log("一致した行（DO1）:", targetRow);//デバッグ用
+
+        if (targetRow) {
+          setDo1(Number(targetRow[6]));
+        } else {
+          setDo1(null);
+        }
+
+      } catch (error) {
+        console.error("DO1号機データの取得に失敗しました:", error);
+
+        setDo1(null);
+      }
+    };
+
+    fetchDo1Data();
   }, [selectedDate, time]);
   //---ここまで-----------------------------------
   return (
@@ -206,21 +276,21 @@ export default function DataPage() {
         <section className="sensor-data-area">
           <div className="data-row">
             <span>気温</span>
-            <span>{outsideTemp} ℃</span>
+            <span>{outsideTemp}  ℃</span>
           </div>
         </section>
 
         <section className="sensor-data-area">
           <div className="data-row">
             <span>水温</span>
-            <span>{waterTemp} ℃</span>
+            <span>{waterTemp}  ℃</span>
           </div>
         </section>
 
         <section className="sensor-data-area">
           <div className="data-row">
             <span>塩分濃度</span>
-            <span>{salinity} ‰</span>
+            <span>{salinity}  ‰</span>
           </div>
         </section>
 
@@ -229,7 +299,7 @@ export default function DataPage() {
             <div>
               <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
             </div>
-            <span>mg/L</span>
+            <span>{do1}  mg/L</span>
           </div>
         </section>
       </section>
