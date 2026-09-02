@@ -38,12 +38,12 @@ export default function DataPage() {
   const navigate = useNavigate();
   const [doSensor, setDoSensor] = useState("DO01");
   useEffect(() => {
-  const savedDoSensor = localStorage.getItem("doSensor");
+    const savedDoSensor = localStorage.getItem("doSensor");
 
-  if (savedDoSensor) {
-    setDoSensor(savedDoSensor);
-  }
-}, []);
+    if (savedDoSensor) {
+      setDoSensor(savedDoSensor);
+    }
+  }, []);
   // 選択された日付を管理
   const [selectedDate, setSelectedDate] = useState(
     location.state?.selectedDate
@@ -59,92 +59,93 @@ export default function DataPage() {
   return (
     <PageLayout title="データ">
 
-      {/* 日付と時間を表示 */}
-      <section className="date-area">
-        <div className="date-icon">
-          {/* カレンダーアイコンの挿入 */}
-          <Link
-            to="/calendar"
-            className="calendar-link"
-            state={{
-              selectedDate,
-              time,
+      <section className="data-page-area">
+        {/* 日付と時間を表示 */}
+        <section className="date-area">
+          <div className="date-icon">
+            {/* カレンダーアイコンの挿入 */}
+            <Link
+              to="/calendar"
+              className="calendar-link"
+              state={{
+                selectedDate,
+                time,
+              }}
+            >
+              <Icons.CalendarRange size={30} />
+            </Link>
+          </div>
+
+          {/* リロードボタン */}
+          <button
+            className="reload-button"
+            onClick={() => {
+              const now = new Date();
+              const latestTime = getLatestTime();
+
+              setSelectedDate(now);
+              setTime(latestTime);
+
+              navigate("/data", {
+                replace: true,
+                state: {
+                  selectedDate: now,
+                  time: latestTime,
+                },
+              });
             }}
           >
-            <Icons.CalendarRange size={30} />
-          </Link>
-        </div>
+            <Icons.RefreshCw size={24} />
+          </button>
+          <div className="date-text-group">
+            <span className="date-text">{formatDate(selectedDate)}</span>
+            <br />
+            {/* 追加　時間を選択する */}
+            <select
+              className="time-select"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            >
+              {times.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
 
-        {/* リロードボタン */}
-        <button
-          className="reload-button"
-          onClick={() => {
-            const now = new Date();
-            const latestTime = getLatestTime();
+        {/* センサから取得したデータを表示 */}
+        <section className="sensor-data-area">
+          <div className="data-row">
+            <span>気温</span>
+            <span>℃</span>
+          </div>
+        </section>
 
-            setSelectedDate(now);
-            setTime(latestTime);
+        <section className="sensor-data-area">
+          <div className="data-row">
+            <span>水温</span>
+            <span>℃</span>
+          </div>
+        </section>
 
-            navigate("/data", {
-              replace: true,
-              state: {
-                selectedDate: now,
-                time: latestTime,
-              },
-            });
-          }}
-        >
-          <Icons.RefreshCw size={24} />
-        </button>
-        <div className="date-text-group">
-          <span className="date-text">{formatDate(selectedDate)}</span>
-          <br />
-          {/* 追加　時間を選択する */}
-          <select
-            className="time-select"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          >
-            {times.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
+        <section className="sensor-data-area">
+          <div className="data-row">
+            <span>塩分濃度</span>
+            <span>‰</span>
+          </div>
+        </section>
+
+        <section className="sensor-data-area">
+          <div className="data-row">
+            <div>
+              <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
+            </div>
+            <span>mg/L</span>
+          </div>
+        </section>
       </section>
-
-      {/* センサから取得したデータを表示 */}
-      <section className="sensor-data-area">
-        <div className="data-row">
-          <span>気温</span>
-          <span>℃</span>
-        </div>
-      </section>
-
-      <section className="sensor-data-area">
-        <div className="data-row">
-          <span>水温</span>
-          <span>℃</span>
-        </div>
-      </section>
-
-      <section className="sensor-data-area">
-        <div className="data-row">
-          <span>塩分濃度</span>
-          <span>‰</span>
-        </div>
-      </section>
-
-      <section className="sensor-data-area">
-  <div className="data-row">
-    <div>
-      <span>溶存酸素 <small className="sensor-name">({doSensor})</small></span>
-    </div>
-
-    <span>mg/L</span>
-  </div>
-</section>
 
     </PageLayout>
   );

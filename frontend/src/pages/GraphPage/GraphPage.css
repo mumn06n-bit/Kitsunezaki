@@ -3,8 +3,8 @@
 
     background: var(--secondary);
 
-    padding-top: 12px;
-    padding-bottom: 10px;
+    padding-top: 20px;
+    padding-bottom: 20px;
 
 }
 
@@ -20,7 +20,7 @@
 /* 種類選択ボタン */
 .graph-select-button {
     width: 180px;
-    height: 30px;
+    height: 35px;
 
     background: var(--white);
     color: var(--black);
@@ -38,7 +38,7 @@
 
 /* 年月日の外枠 */
 .graph-range-area {
-    width: 60%;
+    width: 70%;
     height: 30px;
 
     margin: 12px auto 0;
