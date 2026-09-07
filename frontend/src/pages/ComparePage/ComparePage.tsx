@@ -112,6 +112,13 @@ export default function ComparePage() {
 
       </section>
 
+      {/* ダミーデータのお知らせ */}
+      <div className="graph-notice">
+        <div className="graph-notice-text">
+          ⚠ こちらのデータはダミーデータです。本物のデータに切り替え次第、お知らせします。  
+        </div>
+      </div>
+
       {/* グラフ表示エリア */}
       <section className="compare-area">
 
