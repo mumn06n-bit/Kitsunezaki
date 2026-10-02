@@ -32,17 +32,18 @@ const formatDate = (date: Date) => {
   return `${month}月${day}日（${week}）`;
 };
 
-//--APIデータ仮置き（API直接叩いてます）---------
-import Papa from "papaparse";
-//---ここまで-----------------------------------
+import { fetchSensorData, type SensorRecord } from "@/services/sensorData";
+
+// 設定画面のDOセンサ → 統合データのどの項目を表示するか
+const DO_FIELD: Record<string, "oxygen1" | "oxygen2" | "oxygen3"> = {
+  DO01: "oxygen1",
+  DO02: "oxygen2",
+  DO03: "oxygen3",
+};
 
 export default function DataPage() {
-  //--APIデータ仮置き（API直接叩いてます）---------
-  const [outsideTemp, setOutsideTemp] = useState<number | null>(null);
-  const [waterTemp, setWaterTemp] = useState<number | null>(null);
-  const [salinity, setSalinity] = useState<number | null>(null);
-  const [doValue, setDoValue] = useState<number | null>(null);
-  //---ここまで-----------------------------------
+  // 選択中の日時のセンサーデータ（1件にまとめて持つので、表示は必ず同時に切り替わる）
+  const [record, setRecord] = useState<SensorRecord | null>(null);
 
   // calendarPageから日付、時間を受け取る
   const location = useLocation();
@@ -68,165 +69,32 @@ export default function DataPage() {
     location.state?.time ?? getLatestTime()
   );
 
-  //--APIデータ仮置き（API直接叩いてます）---------
+  // 統合API(/api/sensors)から選択日のデータを取得し、選択時刻の1件を表示する
   useEffect(() => {
-    const fetchSalinityData = async () => {
-      try {
-        const response = await fetch("/api/salinity");
+    // 日時を素早く切り替えたとき、古いレスポンスで上書きしないためのフラグ
+    let ignore = false;
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    fetchSensorData(selectedDate)
+      .then((records) => {
+        if (ignore) return;
+        const target = records.find((r) => r.datetime.slice(11, 16) === time);
+        setRecord(target ?? null);
+      })
+      .catch((error) => {
+        console.error("センサーデータの取得に失敗しました:", error);
+        if (!ignore) setRecord(null);
+      });
 
-        const data = await response.text();
-        console.log("APIから取得したデータ（塩分）:", data);//デバッグ用
-
-        const parsed = Papa.parse(data, {
-          header: false,
-          skipEmptyLines: true,
-        });
-
-        const rows = parsed.data as string[][];
-
-        console.log("取得した行数（塩分）:", rows.length);//デバッグ用
-        console.log("先頭の行（塩分）:", rows[0]);//デバッグ用
-
-        // 選択されている日時に一致するデータを探す
-        const targetDate = new Date(selectedDate);
-        const targetDateString =
-          `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
-
-        console.log("探している日時（塩分）:", targetDateString, time);//デバッグ用
-
-        const targetRow = rows.find((row) => {
-          if (!row[1]) return false;
-
-          const utcDate = new Date(row[1]);
-
-          // APIの日時を日本時間に変換
-          const jstDate = utcDate.toLocaleDateString("sv-SE", {
-            timeZone: "Asia/Tokyo",
-          });
-
-          const jstTime = utcDate.toLocaleTimeString("en-GB", {
-            timeZone: "Asia/Tokyo",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          return (
-            jstDate === targetDateString &&
-            jstTime === time
-          );
-        });
-
-        console.log("一致した行（塩分）:", targetRow);//デバッグ用
-
-        if (targetRow) {
-          setOutsideTemp(Number(targetRow[3]));
-          setWaterTemp(Number(targetRow[4]));
-          setSalinity(Number(targetRow[6]));
-        } else {
-          setOutsideTemp(null);
-          setWaterTemp(null);
-          setSalinity(null);
-        }
-
-      } catch (error) {
-        console.error("塩分センサデータの取得に失敗しました:", error);
-
-        setOutsideTemp(null);
-        setWaterTemp(null);
-        setSalinity(null);
-      }
+    return () => {
+      ignore = true;
     };
-
-    fetchSalinityData();
   }, [selectedDate, time]);
 
-  useEffect(() => {
-    const fetchDoData = async () => {
-      try {
-        // センサーを切り替えたら、まず現在の表示値を消す
-        setDoValue(null);
-        let apiUrl = "";
-
-        if (doSensor === "DO01") {
-          apiUrl = "/api/do1";
-        } else if (doSensor === "DO03") {
-          apiUrl = "/api/do3";
-        } else {
-          setDoValue(null);
-          return;
-        }
-
-        const response = await fetch(apiUrl);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.text();
-        //dataの後ろに、選ばれているDOの種類を記載したいのですが、書き方がわかりません；；
-        console.log(`APIから取得したデータ（${doSensor}）:`, data,);//デバッグ用
-
-        const parsed = Papa.parse(data, {
-          header: false,
-          skipEmptyLines: true,
-        });
-
-        const rows = parsed.data as string[][];
-
-        console.log(`取得した行（${doSensor}）:`, rows.length);//デバッグ用
-        console.log(`先頭の行（${doSensor}）:`, rows[0]);//デバッグ用
-
-        // 選択されている日時に一致するデータを探す
-        const targetDate = new Date(selectedDate);
-        const targetDateString =
-          `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
-
-        console.log(`探している日時（${doSensor}）:`, targetDateString, time);//デバッグ用
-
-        const targetRow = rows.find((row) => {
-          if (!row[1]) return false;
-
-          const utcDate = new Date(row[1]);
-
-          // APIの日時を日本時間に変換
-          const jstDate = utcDate.toLocaleDateString("sv-SE", {
-            timeZone: "Asia/Tokyo",
-          });
-
-          const jstTime = utcDate.toLocaleTimeString("en-GB", {
-            timeZone: "Asia/Tokyo",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          return (
-            jstDate === targetDateString &&
-            jstTime === time
-          );
-        });
-
-        console.log(`一致した行（${doSensor}）:`, targetRow);//デバッグ用
-
-        if (targetRow) {
-          setDoValue(Number(targetRow[6]));
-        } else {
-          setDoValue(null);
-        }
-
-      } catch (error) {
-        console.error("DO1号機データの取得に失敗しました:", error);
-
-        setDoValue(null);
-      }
-    };
-
-    fetchDoData();
-  }, [selectedDate, time, doSensor]);
-  //---ここまで-----------------------------------
+  const outsideTemp = record?.outsideTemp ?? null;
+  const waterTemp = record?.waterTemp ?? null;
+  const salinity = record?.salinity ?? null;
+  const doField = DO_FIELD[doSensor];
+  const doValue = record && doField ? record[doField] : null;
   return (
     <PageLayout title="データ">
 
