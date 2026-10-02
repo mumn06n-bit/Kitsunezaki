@@ -62,6 +62,7 @@ const toNumber = (value: string | undefined) => {
 const fetchCsvRows = async (url: string) => {
   const apiResponse = await fetch(url, {
     headers: { "User-Agent": "api_test/1.0" },
+    signal: AbortSignal.timeout(30_000), // 30秒で打ち切り
   });
 
   if (!apiResponse.ok) {
