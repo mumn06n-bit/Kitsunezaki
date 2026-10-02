@@ -1,5 +1,4 @@
 import Papa from "papaparse";
-
 // 塩分センサ・DOセンサの元APIをまとめて取得し、日時ごとに1つのJSONへ統合して返す
 //   GET /api/sensors             … 全期間
 //   GET /api/sensors?date=YYYY-MM-DD … 指定日（日本時間）のみ
@@ -62,6 +61,7 @@ const toNumber = (value: string | undefined) => {
 const fetchCsvRows = async (url: string) => {
   const apiResponse = await fetch(url, {
     headers: { "User-Agent": "api_test/1.0" },
+    signal: AbortSignal.timeout(30_000), // 30秒で打ち切り
   });
 
   if (!apiResponse.ok) {
