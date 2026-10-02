@@ -4,15 +4,15 @@ export default async function handler(
   _request: any,
   response: any
 ) {
-  // 1. ŠÇ—‰æ–Ê‚©‚çŠÂ‹«•Ï”i–{“–‚ÌURLj‚ğ“Ç‚İ‚Ş
+  // 1. ç®¡ç†ç”»é¢ã‹ã‚‰ç’°å¢ƒå¤‰æ•°ï¼ˆæœ¬å½“ã®URLï¼‰ã‚’èª­ã¿è¾¼ã‚€
   const targetUrl: string | undefined = API_URL;
 
   if (!targetUrl) {
-    return response.status(500).json({ error: "API URL‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB" });
+    return response.status(500).json({ error: "API URLãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚" });
   }
 
   try {
-    // 2. Vercel‚ÌƒT[ƒo[‚ªAg‘ã‚í‚è‚É‚È‚Á‚Ä–{“–‚ÌAPI‚ğ’@‚­
+    // 2. Vercelã®ã‚µãƒ¼ãƒãƒ¼ãŒã€èº«ä»£ã‚ã‚Šã«ãªã£ã¦æœ¬å½“ã®APIã‚’å©ã
     const apiResponse = await fetch(targetUrl, {
       headers: {
         Accept: 'application/json',
@@ -24,7 +24,7 @@ export default async function handler(
       const errorText = await apiResponse.text();
 
       return response.status(apiResponse.status).json({
-        error: "ŠO•”API‚©‚ç‚Ìƒf[ƒ^æ“¾‚É¸”s‚µ‚Ü‚µ‚½B",
+        error: "å¤–éƒ¨APIã‹ã‚‰ã®ãƒ‡ãƒ¼ã‚¿å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸã€‚",
         upstreamStatus: apiResponse.status,
         upstreamBody: errorText.slice(0, 500),
       });
@@ -32,14 +32,14 @@ export default async function handler(
 
     const data = await apiResponse.text();
 
-    // CORS‚ğ‰ñ”ğ‚·‚é‚½‚ß‚Ìƒwƒbƒ_[‚ğ•t—^
+    // CORSã‚’å›é¿ã™ã‚‹ãŸã‚ã®ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’ä»˜ä¸
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Allow-Methods', 'GET');
     response.setHeader('Content-Type', apiResponse.headers.get('content-type') ?? 'text/plain; charset=utf-8');
 
-    // 3. ƒuƒ‰ƒEƒU‚Éƒf[ƒ^‚ğ•Ô‚·
+    // 3. ãƒ–ãƒ©ã‚¦ã‚¶ã«ãƒ‡ãƒ¼ã‚¿ã‚’è¿”ã™
     return response.status(200).send(data);
   } catch (_error) {
-    return response.status(500).json({ error: "’ÊMƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½B" });
+    return response.status(500).json({ error: "é€šä¿¡ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸã€‚" });
   }
 }
