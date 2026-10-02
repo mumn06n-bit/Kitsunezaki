@@ -1,5 +1,4 @@
 import Papa from "papaparse";
-
 // 塩分センサ・DOセンサの元APIをまとめて取得し、日時ごとに1つのJSONへ統合して返す
 //   GET /api/sensors             … 全期間
 //   GET /api/sensors?date=YYYY-MM-DD … 指定日（日本時間）のみ
@@ -59,8 +58,6 @@ const toNumber = (value: string | undefined) => {
   return Number.isFinite(num) ? num : null;
 };
 
-const SLOT_MS = 30 * 60 * 1000; // データ保持の30分枠
-
 const fetchCsvRows = async (url: string) => {
   const apiResponse = await fetch(url, {
     headers: { "User-Agent": "api_test/1.0" },
@@ -87,33 +84,27 @@ type ApiResponse = {
 };
 
 export default async function handler(request: ApiRequest, response: ApiResponse) {
-
-  // エラーのときもブラウザが読めるように、CORSヘッダーは最初に付ける
-  response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET");
-
   const dateParam = request.query?.date;
   const date = typeof dateParam === "string" ? dateParam : undefined;
 
-  // URLが設定されている元APIだけを対象にする（未設定のDO2は無視する）
-  const activeSources = SOURCES.filter((source) => source.url);
-
   // 全ての元APIを並列で取得（1つ失敗しても他のデータは返す）
   const results = await Promise.allSettled(
-    activeSources.map((source) => fetchCsvRows(source.url as string))
+    SOURCES.map((source) => {
+      if (!source.url) {
+        return Promise.reject(new Error(`${source.name} のAPI URLが設定されていません。`));
+      }
+      return fetchCsvRows(source.url);
+    })
   );
 
   // 日時をキーにして統合
   const records = new Map<string, SensorRecord>();
-  const failedSources: string[] = [];
 
   results.forEach((result, i) => {
-    const source = activeSources[i];
-
+    const source = SOURCES[i];
 
     if (result.status === "rejected") {
       console.error(`${source.name} の取得に失敗しました:`, result.reason);
-      failedSources.push(source.name);
       return;
     }
 
@@ -151,40 +142,10 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
   const body = [...records.values()].sort((a, b) => a.datetime.localeCompare(b.datetime));
 
-  // ここから、Cache-Control を決める処理
-  const now = Date.now();
-  const slotStart = Math.floor(now / SLOT_MS) * SLOT_MS; // 今の30分枠の開始時刻
-  const currentSlotKey = toJstKey(new Date(slotStart).toISOString());
-  const todayJst = currentSlotKey?.slice(0, 10);
-
-  let sMaxAge: number;
-
-  if (failedSources.length > 0) {
-    // 一部の取得に失敗したときは、すぐ取り直せるように短く
-    response.setHeader("X-Failed-Sources", failedSources.join(","));
-    sMaxAge = 10;
-  } else if (date && todayJst && date < todayJst) {
-    // 過去の日付はもう変わらないので、長めに保存（10分）
-    sMaxAge = 600;
-  } else {
-    // 今の30分枠のデータが、使っている全センサ分そろっているか
-    const requiredFields = activeSources.flatMap(
-      (source) => Object.keys(source.columns) as ValueKey[]
-    );
-    const current = currentSlotKey ? records.get(currentSlotKey) : undefined;
-    const isComplete = !!current && requiredFields.every((field) => current[field] !== null);
-
-    if (isComplete) {
-      // 次の30分枠が始まるまで保存（+22秒の余裕）
-      sMaxAge = Math.ceil((slotStart + SLOT_MS - now) / 1000) + 22;
-    } else {
-      // まだそろっていないので、30秒ごとに取り直す
-      sMaxAge = 30;
-    }
-  }
-
-  response.setHeader("Cache-Control", `s-maxage=${sMaxAge}`);
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET");
+  // Vercelのキャッシュに60秒保持（各画面から何度呼ばれても元APIへのアクセスは抑えられる）
+  response.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
 
   return response.status(200).json(body);
 }
-
