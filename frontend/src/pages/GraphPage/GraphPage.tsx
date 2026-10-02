@@ -68,16 +68,11 @@ export default function GraphPage() {
       </section>
 
       
-      {/* ダミーデータのお知らせ */}
-      <div className="graph-notice">
-        <div className="graph-notice-text">
-          ⚠ こちらのデータはダミーデータです。本物のデータに切り替え次第、お知らせします。  
-        </div>
-      </div>
 
       <section className="graph-area">
         {/* グラフがここに */}
         <GraphChart
+          graphType={graphType}
           graphMode={graphMode}
           unit={unit}
           targetValue={targetValue}
