@@ -20,10 +20,6 @@ export default function GraphPage() {
         : graphType === "塩分濃度"
           ? Number(localStorage.getItem("salinity") ?? 25)
           : Number(localStorage.getItem("oxygen") ?? 0);
-  // const changeMode = (mode: string) => {
-  //   setGraphMode(mode);
-  //   console.log(mode);
-  // };
   return (
     <PageLayout title="グラフ">
 

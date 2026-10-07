@@ -3,7 +3,7 @@ import ReactECharts from "echarts-for-react";
 import {
   getSensorUnit,
   type CompareSettings,
-} from "@/dummyData/compareData";
+} from "@/pages/ComparePage/compareData";
 import "./CompareChart.css";
 
 type SensorData = {
@@ -22,18 +22,22 @@ export default function CompareChart({
   settings: CompareSettings;
 }) {
   const { sensorType, graphPeriod, periods } = settings;
+  const doSensor = localStorage.getItem("doSensor") ?? "DO01";
   const unit = getSensorUnit(sensorType);
 
   const [sensorData, setSensorData] = useState<
   Record<number, SensorData[]>
 >({});
+const [isLoading, setIsLoading] = useState(true);
 
  // 日付指定のとき、選択された各日の実データを取得
 useEffect(() => {
   if (periods.length === 0) {
     setSensorData({});
+    setIsLoading(false);
     return;
   }
+  setIsLoading(true);
 
   const fetchData = async () => {
     const results: Record<number, SensorData[]> = {};
@@ -115,6 +119,8 @@ if (graphPeriod === "year") {
     } catch (error) {
       console.error("センサーデータ取得エラー:", error);
       setSensorData({});
+    }finally {
+      setIsLoading(false);
     }
   };
 
@@ -136,6 +142,10 @@ if (graphPeriod === "year") {
         ? "waterTemp"
         : sensorType === "salt"
           ? "salinity"
+          : doSensor === "DO02"
+          ? "oxygen2"
+          : doSensor === "DO03"
+            ? "oxygen3"
           : "oxygen1";
 
   series = periods.map((period) => {
@@ -188,6 +198,10 @@ if (graphPeriod === "year") {
         ? "waterTemp"
         : sensorType === "salt"
           ? "salinity"
+          : doSensor === "DO02"
+          ? "oxygen2"
+          : doSensor === "DO03"
+            ? "oxygen3"
           : "oxygen1";
 
   series = periods.map((period) => {
@@ -247,6 +261,10 @@ if (graphPeriod === "year") {
           ? "waterTemp"
           : sensorType === "salt"
             ? "salinity"
+            : doSensor === "DO02"
+          ? "oxygen2"
+          : doSensor === "DO03"
+            ? "oxygen3"
             : "oxygen1";
 
     series = periods.map((period) => {
@@ -314,6 +332,7 @@ if (graphPeriod === "year") {
   return (
   <div className="compare-chart-scroll">
     <div className="compare-chart">
+       {isLoading ? null : (
       <ReactECharts
         option={option}
         notMerge={true}
@@ -322,6 +341,7 @@ if (graphPeriod === "year") {
           height: "100%",
         }}
       />
+       )}
     </div>
   </div>
 );

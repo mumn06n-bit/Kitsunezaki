@@ -4,19 +4,15 @@ import ReactECharts from "echarts-for-react";
 import type { ECharts } from "echarts";
 import "./GraphChart.css";
 
-
-// 月モードで横軸ラベルを表示する日（月の区切りが分かるよう1日は必ず出す）
-//const LABEL_DAYS = [1, 5, 10, 15, 20, 25];
-
 // 横軸のその点にラベルを表示するか（年モードは全部表示）
 const isLabelShown = (_graphMode: string, _value: string) => true;
     //graphMode !== "月" || LABEL_DAYS.includes(Number(value.slice(8, 10)));
 
 // 横軸ラベル（2段）を作る関数を返す
-//   月モード：上段に月、下段に日（"9月\n5日"）
-//   年モード：上段に年、下段に月（"2026年\n10月"）
+//   月モード：上段に月、下段に日
+//   年モード：上段に年、下段に月
 // 上段は「月（年）の最初」と「表示範囲で一番左のラベル」にだけ出す。
-// スクロールしても左端に必ず月（年）が表示され、10月1日が来るとそこから「10月」になる
+// スクロールしても左端に必ず月（年）が表示される。
 const makeXAxisFormatter = (xData: string[], graphMode: string, startIndex: number) => {
     if (graphMode === "日") return (value: string) => value; // "00:30" など
 

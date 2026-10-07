@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import "./CompareScatter.css";
+import { getSensorUnit } from "./compareData.ts";
 
 type CompareScatterProps = {
   settings: any;
@@ -314,18 +315,21 @@ export default function CompareScatter({
         right: 20,
         top: 30,
         bottom: 60,
+        
       },
 
       xAxis: {
         type: "value",
-        name: getSensorNameByValue(axes.x),
+        name: `${getSensorNameByValue(axes.x)} [${getSensorUnit(axes.x)}]`,
+        //name: getSensorNameByValue(axes.x),
         nameLocation: "middle",
         nameGap: 35,
       },
 
       yAxis: {
         type: "value",
-        name: getSensorNameByValue(axes.y),
+        name: `${getSensorNameByValue(axes.y)} [${getSensorUnit(axes.y)}]`,
+        //name: getSensorNameByValue(axes.y),
         nameLocation: "middle",
         nameGap: 35,
       },
@@ -402,7 +406,7 @@ export default function CompareScatter({
         option={getCorrelationChartOption()}
         style={{
           width: "100%",
-          height: "500px",
+          height: "450px",
         }}
       />
     </div>
