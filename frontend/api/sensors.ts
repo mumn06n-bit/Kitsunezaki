@@ -16,6 +16,8 @@ type SensorRecord = {
 
 type ValueKey = Exclude<keyof SensorRecord, "datetime">;
 
+const SLOT_MS = 30 * 60 * 1000; // 30分
+
 // 元APIごとの設定：CSVの何列目をどの項目に入れるか
 const SOURCES: { name: string; url: string | undefined; columns: Partial<Record<ValueKey, number>> }[] = [
   {
@@ -59,11 +61,23 @@ const toNumber = (value: string | undefined) => {
   return Number.isFinite(num) ? num : null;
 };
 
+// 接続エラー（通信自体の失敗）のときだけ、もう一度試す
+const fetchWithRetry = async (url: string, retries = 1) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, {
+        headers: { "User-Agent": "api_test/1.0" },
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (error) {
+      if (attempt >= retries) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+};
+
 const fetchCsvRows = async (url: string) => {
-  const apiResponse = await fetch(url, {
-    headers: { "User-Agent": "api_test/1.0" },
-    signal: AbortSignal.timeout(30_000), // 30秒で打ち切り
-  });
+  const apiResponse = await fetchWithRetry(url);
 
   if (!apiResponse.ok) {
     throw new Error(`upstream status ${apiResponse.status}`);
@@ -85,27 +99,32 @@ type ApiResponse = {
 };
 
 export default async function handler(request: ApiRequest, response: ApiResponse) {
+  // エラーのときもブラウザが読めるように、CORSヘッダーは最初に付ける
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET");
+
   const dateParam = request.query?.date;
   const date = typeof dateParam === "string" ? dateParam : undefined;
 
+  // URLが設定されている元APIだけを対象にする（未設定のDO2は無視する）
+  const activeSources = SOURCES.filter((source) => source.url);
+
   // 全ての元APIを並列で取得（1つ失敗しても他のデータは返す）
   const results = await Promise.allSettled(
-    SOURCES.map((source) => {
-      if (!source.url) {
-        return Promise.reject(new Error(`${source.name} のAPI URLが設定されていません。`));
-      }
-      return fetchCsvRows(source.url);
-    })
+    activeSources.map((source) => fetchCsvRows(source.url as string))
   );
 
   // 日時をキーにして統合
   const records = new Map<string, SensorRecord>();
+  const failedSources: string[] = [];
 
   results.forEach((result, i) => {
-    const source = SOURCES[i];
+    const source = activeSources[i];
+
 
     if (result.status === "rejected") {
       console.error(`${source.name} の取得に失敗しました:`, result.reason);
+      failedSources.push(source.name);
       return;
     }
 
@@ -143,10 +162,39 @@ export default async function handler(request: ApiRequest, response: ApiResponse
 
   const body = [...records.values()].sort((a, b) => a.datetime.localeCompare(b.datetime));
 
-  response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET");
-  // Vercelのキャッシュに60秒保持（各画面から何度呼ばれても元APIへのアクセスは抑えられる）
-  response.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  // ここから、Cache-Control を決める処理
+  const now = Date.now();
+  const slotStart = Math.floor(now / SLOT_MS) * SLOT_MS; // 今の30分枠の開始時刻
+  const currentSlotKey = toJstKey(new Date(slotStart).toISOString());
+  const todayJst = currentSlotKey?.slice(0, 10);
+
+  let sMaxAge: number;
+
+  if (failedSources.length > 0) {
+    // 一部の取得に失敗したときは、すぐ取り直せるように短く
+    response.setHeader("X-Failed-Sources", failedSources.join(","));
+    sMaxAge = 10;
+  } else if (date && todayJst && date < todayJst) {
+    // 過去の日付はもう変わらないので、長めに保存（10分）
+    sMaxAge = 600;
+  } else {
+    // 今の30分枠のデータが、使っている全センサ分そろっているか
+    const requiredFields = activeSources.flatMap(
+      (source) => Object.keys(source.columns) as ValueKey[]
+    );
+    const current = currentSlotKey ? records.get(currentSlotKey) : undefined;
+    const isComplete = !!current && requiredFields.every((field) => current[field] !== null);
+
+    if (isComplete) {
+      // 次の30分枠が始まるまで保存（+5秒の余裕）
+      sMaxAge = Math.ceil((slotStart + SLOT_MS - now) / 1000) + 5;
+    } else {
+      // まだそろっていないので、30秒ごとに取り直す
+      sMaxAge = 30;
+    }
+  }
+
+  response.setHeader("Cache-Control", `s-maxage=${sMaxAge}`);
 
   return response.status(200).json(body);
 }
