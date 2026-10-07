@@ -279,7 +279,7 @@ if (graphPeriod === "year") {
       ? "日"
       : graphPeriod === "year"
         ? "月"
-        : "時刻";
+        : "時間";
 
   const option = {
     grid: {

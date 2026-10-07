@@ -4,12 +4,13 @@ import ReactECharts from "echarts-for-react";
 import type { ECharts } from "echarts";
 import "./GraphChart.css";
 
+
 // 月モードで横軸ラベルを表示する日（月の区切りが分かるよう1日は必ず出す）
-const LABEL_DAYS = [1, 5, 10, 15, 20, 25];
+//const LABEL_DAYS = [1, 5, 10, 15, 20, 25];
 
 // 横軸のその点にラベルを表示するか（年モードは全部表示）
-const isLabelShown = (graphMode: string, value: string) =>
-    graphMode !== "月" || LABEL_DAYS.includes(Number(value.slice(8, 10)));
+const isLabelShown = (_graphMode: string, _value: string) => true;
+    //graphMode !== "月" || LABEL_DAYS.includes(Number(value.slice(8, 10)));
 
 // 横軸ラベル（2段）を作る関数を返す
 //   月モード：上段に月、下段に日（"9月\n5日"）
@@ -27,12 +28,16 @@ const makeXAxisFormatter = (xData: string[], graphMode: string, startIndex: numb
         if (graphMode === "月") {
             const day = Number(value.slice(8, 10));
             const top = day === 1 || value === firstShown ? `${month}月` : " ";
-            return `${top}\n${day}日`;
+            return `${top}\n${day}`;
         }
         const top = month === 1 || value === firstShown ? `${value.slice(0, 4)}年` : " ";
-        return `${top}\n${month}月`;
+        return `${top}\n${month}`;
     };
 };
+
+const NO_RECORDS: SensorRecord[] = [];
+const getDataKind = (graphMode: string) => (graphMode === "日" ? "today" : "all");
+
 
 type Props = {
     graphType: string;
@@ -47,7 +52,10 @@ export default function GraphChart({
     unit,
     targetValue,
 }: Props) {
-    const [records, setRecords] = useState<SensorRecord[]>([]);
+    const [fetched, setFetched] = useState<{ kind: string; records: SensorRecord[] }>({
+    kind: "",
+    records: NO_RECORDS,
+});
     const [currentDate] = useState(() => new Date());
 
     useEffect(() => {
@@ -55,10 +63,14 @@ export default function GraphChart({
         // 過去に遡れるよう、日モード以外は常に全期間を取得
         const request = graphMode === "日" ? fetchSensorData(currentDate) : fetchSensorData();
         request
-            .then((data) => { if (!ignore) setRecords(data); })
+            .then((data) => { if (!ignore) setFetched({ kind: getDataKind(graphMode), records: data }); })
+            //.then((data) => { if (!ignore) setRecords(data); })
             .catch((error) => console.error("グラフ用データの取得に失敗しました:", error));
         return () => { ignore = true; };
     }, [graphMode, currentDate]);
+
+    const records = fetched.kind === getDataKind(graphMode) ? fetched.records : NO_RECORDS;
+    const isLoading = fetched.kind !== getDataKind(graphMode);
 
     const graphData = useMemo(() => {
         return makeGraphPoints(records, graphType, graphMode, currentDate);
@@ -72,7 +84,7 @@ export default function GraphChart({
     // 1画面に表示する点の数
     //   日モード：PC 24点（11時間半）、スマホ 6点（3時間。例：12:30〜15:30）
     //   月モード：31日、年モード：12か月（「今月だけ」にすると月初は1〜2点しか出ないため）
-    const visibleCount = graphMode === "日" ? (isNarrow ? 6 : 24) : graphMode === "月" ? 31 : 12;
+    const visibleCount = graphMode === "日" ? (isNarrow ? 6 : 24) : graphMode === "月" ? (isNarrow ? 7 : 31) : 12;
 
     // 最初に表示する範囲：日モードは最新のデータがある時刻まで、月・年モードは最後の点まで
     // それより前は左へスクロールして見る
@@ -119,7 +131,7 @@ export default function GraphChart({
     const option = {
         grid: {
             left: 45,
-            right: 40, // 単位のハミ出し防止に少し広げる
+            right: 40,
             top: 40,
             // 月・年モード（ラベル2段）とスマホの日モード（ラベル斜め）は、ラベルの分だけ広げる
             bottom: graphMode === "日" && !rotateLabel ? 30 : 45,
@@ -192,14 +204,17 @@ export default function GraphChart({
         ],
     };
 
-    return (
-        <div className="graph-chart">
+return (
+    <div className="graph-chart">
+        {isLoading ? null : (
             <ReactECharts
                 option={option}
                 notMerge={true}
                 onEvents={onEvents}
                 style={{ width: "100%", height: "100%" }}
             />
-        </div>
-    );
+        )}
+    </div>
+);
+
 }
