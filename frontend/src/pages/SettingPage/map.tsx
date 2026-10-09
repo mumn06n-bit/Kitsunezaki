@@ -1,25 +1,20 @@
 
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-} from "react-leaflet";
-
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import PageLayout from "@/components/PageLayout";
 import {
-  fetchSensorData,
-  type SensorRecord,
+  fetchLatestSensorPositions,
+  type LatestSensorPositions,
+  type PositionKey,
 } from "@/services/sensorData";
 
 import "./map.css";
 
-// 地図上のセンサー位置 ※固定
+// 地図上のマーカー座標は変更しない
 const sensors = [
   {
     id: "DO01",
@@ -47,123 +42,99 @@ const sensors = [
   },
 ] as const;
 
-type PositionSensorId =
-  | "DO01"
-  | "DO02"
-  | "DO03"
-  | "salinity";
+type PositionSensorId = "DO01" | "DO02" | "DO03" | "salinity";
+
+const sensorLabels: Record<PositionSensorId, string> = {
+  DO01: "DO01",
+  DO02: "DO02",
+  DO03: "DO03",
+  salinity: "塩分",
+};
 
 export default function MapPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 選択中のセンサー
   const [selectedSensor, setSelectedSensor] = useState<string>(
     location.state?.selectedSensor ?? "DO01"
   );
 
-  // APIから取得したデータ
-  const [sensorData, setSensorData] =
-    useState<SensorRecord | null>(null);
+  const [positionData, setPositionData] =
+    useState<LatestSensorPositions | null>(null);
 
-  // APIデータ取得
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     let ignore = false;
 
-    const loadSensorData = async () => {
+    const loadPositions = async () => {
       try {
-        // 当日分を取得。共通キャッシュが有効なら再利用する
-        const records = await fetchSensorData();
+        setLoading(true);
+
+        const result = await fetchLatestSensorPositions();
 
         if (ignore) return;
 
-        if (records.length === 0) {
-          console.warn("センサデータがありません");
-          setSensorData(null);
-          return;
-        }
+        setPositionData(result);
 
-        // 日時を比較して最新データを選択
-        const latest = records.reduce((newest, current) =>
-          current.datetime > newest.datetime
-            ? current
-            : newest
-        );
-
-        console.log("取得した最新データ:", latest);
-        console.log("取得した位置情報:", latest.positions);
-
-        setSensorData(latest);
+        console.log("取得した最新位置情報:", result.positions);
+        console.log("位置情報の取得日時:", result.positionDatetimes);
       } catch (error) {
-        console.error(
-          "センサデータの取得に失敗しました:",
-          error
-        );
+        console.error("位置情報の取得に失敗しました:", error);
 
         if (!ignore) {
-          setSensorData(null);
+          setPositionData(null);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
         }
       }
     };
 
-    loadSensorData();
+    loadPositions();
 
     return () => {
       ignore = true;
     };
   }, []);
 
-  // DOセンサー選択
   const handleSensorSelect = (sensorId: string) => {
     if (sensorId === "塩分") return;
-
     setSelectedSensor(sensorId);
   };
 
-  // OKボタン
   const handleOk = () => {
     navigate("/settings", {
-      state: {
-        selectedSensor,
-      },
+      state: { selectedSensor },
     });
   };
 
-  // DOセンサーアイコン
   const createDoIcon = (sensorId: string) => {
     const isSelected = sensorId === selectedSensor;
 
     return L.divIcon({
       className: "sensor-marker-wrapper",
-      html: `
-        <div class="sensor-marker ${
-          isSelected ? "selected" : ""
-        }">
-          ${sensorId}
-        </div>
-      `,
+      html: `<div class="sensor-marker ${
+        isSelected ? "selected" : ""
+      }">${sensorId}</div>`,
       iconSize: [60, 36],
       iconAnchor: [30, 18],
     });
   };
 
-  // 塩分センサーアイコン
-  const createSalinityIcon = () => {
-    return L.divIcon({
+  const createSalinityIcon = () =>
+    L.divIcon({
       className: "salinity-marker-wrapper",
-      html: `
-        <div class="salinity-marker">
-          塩分
-        </div>
-      `,
+      html: '<div class="salinity-marker">塩分</div>',
       iconSize: [60, 36],
       iconAnchor: [30, 18],
     });
-  };
 
-  // センサー位置の表示
   const renderPosition = (sensorId: PositionSensorId) => {
-    if (!sensorData) {
+    const position = positionData?.positions[sensorId];
+
+    if (loading) {
       return (
         <>
           <span>緯度：取得中...</span>
@@ -172,12 +143,10 @@ export default function MapPage() {
       );
     }
 
-    const position = sensorData.positions?.[sensorId];
-
     if (
       !position ||
-      !position.latitudeDMS ||
-      !position.longitudeDMS
+      position.latitudeDMS === null ||
+      position.longitudeDMS === null
     ) {
       return (
         <>
@@ -198,13 +167,9 @@ export default function MapPage() {
   return (
     <PageLayout title="地図" showBackButton={true}>
       <div className="map-page">
-        {/* 地図 */}
         <div className="map-area">
           <MapContainer
-            center={[
-              sensors[0].latitude,
-              sensors[0].longitude,
-            ]}
+            center={[sensors[0].latitude, sensors[0].longitude]}
             zoom={14}
             scrollWheelZoom={false}
             doubleClickZoom={false}
@@ -225,10 +190,7 @@ export default function MapPage() {
             {sensors.map((sensor) => (
               <Marker
                 key={sensor.id}
-                position={[
-                  sensor.latitude,
-                  sensor.longitude,
-                ]}
+                position={[sensor.latitude, sensor.longitude]}
                 icon={
                   sensor.type === "salinity"
                     ? createSalinityIcon()
@@ -242,50 +204,33 @@ export default function MapPage() {
           </MapContainer>
         </div>
 
-        {/* 選択中のセンサー */}
         <div className="selected-sensor">
-          選択中：
-          <strong>{selectedSensor}</strong>
+          選択中：<strong>{selectedSensor}</strong>
         </div>
 
-        {/* OKボタン */}
         <div className="map-ok-button-area">
-          <button
-            className="map-ok-button"
-            onClick={handleOk}
-          >
+          <button className="map-ok-button" onClick={handleOk}>
             OK
           </button>
         </div>
 
-        {/* センサー位置情報 */}
         <div className="sensor-location-list">
-          <div className="sensor-location">
-            <strong>DO01</strong>
-            {renderPosition("DO01")}
-          </div>
+          {(
+            ["DO01", "DO02", "DO03", "salinity"] as PositionSensorId[]
+          ).map((sensorId) => (
+            <div className="sensor-location" key={sensorId}>
+              <strong>{sensorLabels[sensorId]}</strong>
+              {renderPosition(sensorId)}
+            </div>
+          ))}
 
-          <div className="sensor-location">
-            <strong>DO02</strong>
-            {renderPosition("DO02")}
-          </div>
-
-          <div className="sensor-location">
-            <strong>DO03</strong>
-            {renderPosition("DO03")}
-          </div>
-
-          <div className="sensor-location">
-            <strong>塩分</strong>
-            {renderPosition("salinity")}
-          </div>
-
-          {/* データ取得日時 */}
           <div className="sensor-data-time">
-            <strong>データ取得日時：</strong>
-            {sensorData
-              ? sensorData.datetime.replace("T", " ")
-              : "取得中..."}
+            <strong>位置情報の取得日時：</strong>
+            {loading
+              ? "取得中..."
+              : positionData?.datetime
+                ? positionData.datetime.replace("T", " ")
+                : "取得できません"}
           </div>
         </div>
       </div>
