@@ -4,10 +4,11 @@ import "./ComparePage.css";
 import PageLayout from "@/components/PageLayout";
 import CompareChart from "./CompareChart";
 import CompareScatter from "./CompareScatter";
+import type { CompareSettings } from "./compareData";
 
 export default function ComparePage() {
 
-  const [settings, setSettings] = useState<any>(null);
+ const [settings, setSettings] = useState<CompareSettings | null>(null);
 
   // 保存された設定を読み込む
   useEffect(() => {
@@ -22,10 +23,10 @@ export default function ComparePage() {
 
   }, []);
 
-  // 種類表示
+   // 種類表示
   const getSensorName = () => {
-
     if (!settings) return "";
+
     const names: { [key: string]: string } = {
       air: "気温",
       water: "水温",
@@ -36,17 +37,17 @@ export default function ComparePage() {
     // 相関モード
     if (settings.correlationMode) {
       return settings.correlationSensors
-        .map((sensor: string) => names[sensor])
+        .map((sensor) => names[sensor])
         .join(" ✖ ");
     }
 
     // 通常モード
     return names[settings.sensorType];
   };
-
   // 期間表示
-  const getPeriodText = (period: any) => {
-
+  const getPeriodText = (
+  period: CompareSettings["periods"][number]
+) => {
     if (!settings) return "";
     switch (settings.graphPeriod) {
       case "year":
@@ -94,7 +95,7 @@ export default function ComparePage() {
         {/* 下段*/}
         <div className="compare-period">
 
-          {settings?.periods.map((period: any) => (
+          {settings?.periods.map((period) => (
 
             <div
               key={period.id}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactECharts from "echarts-for-react";
+import type { EChartsOption } from "echarts";
 import {
   getSensorUnit,
   type CompareSettings,
@@ -16,6 +17,59 @@ type SensorData = {
   oxygen3: number | null;
 };
 
+// センサーの数値項目を表す型
+type SensorField = Exclude<keyof SensorData, "datetime">;
+
+// センサー値の平均を計算する
+const getAverage = (
+  records: SensorData[],
+  sensorField: SensorField
+) => {
+  const values = records
+    .map((record) => record[sensorField])
+    .filter((value): value is number => typeof value === "number");
+
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+};
+
+const createLineSettings = (
+  period: CompareSettings["periods"][number],
+  symbolSize: number
+) => ({
+  type: "line" as const,
+  smooth: true,
+  symbol: "circle",
+  symbolSize,
+  connectNulls: false,
+  color: period.color,
+  itemStyle: { color: period.color },
+});
+
+// 指定した時刻のセンサーデータを取得する
+const getRecordByTime = (
+  records: SensorData[],
+  time: string
+) =>
+  records.find((item) =>
+    item.datetime.includes(`T${time}:`)
+  );
+
+// 指定した日または月に一致するデータを抽出する
+const getRecordsByDate = (
+  records: SensorData[],
+  datePart: string,
+  mode: "day" | "month"
+) =>
+  records.filter((item) =>
+    mode === "day"
+      ? item.datetime.includes(`-${datePart}T`)
+      : item.datetime.includes(`-${datePart}-`)
+  );
+
 export default function CompareChart({
   settings,
 }: {
@@ -25,32 +79,55 @@ export default function CompareChart({
   const doSensor = localStorage.getItem("doSensor") ?? "DO01";
   const unit = getSensorUnit(sensorType);
 
+  const sensorField: SensorField =
+    sensorType === "air"
+      ? "outsideTemp"
+      : sensorType === "water"
+        ? "waterTemp"
+        : sensorType === "salt"
+          ? "salinity"
+          : doSensor === "DO02"
+            ? "oxygen2"
+            : doSensor === "DO03"
+              ? "oxygen3"
+              : "oxygen1";
+
   const [sensorData, setSensorData] = useState<
-  Record<number, SensorData[]>
->({});
-const [isLoading, setIsLoading] = useState(true);
+    Record<number, SensorData[]>
+  >({});
+  const [isLoading, setIsLoading] = useState(true);
 
- // 日付指定のとき、選択された各日の実データを取得
-useEffect(() => {
-  if (periods.length === 0) {
-    setSensorData({});
-    setIsLoading(false);
-    return;
-  }
-  setIsLoading(true);
+  // 日付指定のとき、選択された各日の実データを取得
+  useEffect(() => {
+    const getDateQuery = (
+      period: CompareSettings["periods"][number]
+    ) => {
+      const year = period.year;
+      const month = String(period.month).padStart(2, "0");
+      const day = String(period.day).padStart(2, "0");
 
-  const fetchData = async () => {
-    const results: Record<number, SensorData[]> = {};
-
-    try {
       if (graphPeriod === "day") {
+        return `${year}-${month}-${day}`;
+      } else if (graphPeriod === "month") {
+        return `${year}-${month}`;
+      } else {
+        return String(year);
+      }
+    };
+    if (periods.length === 0) {
+      setSensorData({});
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+
+    const fetchData = async () => {
+      const results: Record<number, SensorData[]> = {};
+
+      try {
         await Promise.all(
           periods.map(async (period) => {
-            const date = `${period.year}-${String(period.month).padStart(
-              2,
-              "0"
-            )}-${String(period.day).padStart(2, "0")}`;
-
+            const date = getDateQuery(period);
             const response = await fetch(`/api/sensors?date=${date}`);
 
             if (!response.ok) {
@@ -58,238 +135,96 @@ useEffect(() => {
             }
 
             const data: SensorData[] = await response.json();
-
             results[period.id] = data;
-
-            console.log(`${date} の比較データ:`, data);
           })
         );
+
+        setSensorData(results);
+      } catch (error) {
+        console.error("センサーデータ取得エラー:", error);
+        setSensorData({});
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      if (graphPeriod === "month") {
-  await Promise.all(
-    periods.map(async (period) => {
-      const month = `${period.year}-${String(period.month).padStart(
-        2,
-        "0"
-      )}`;
+    fetchData();
+  }, [graphPeriod, periods]);
 
-      const response = await fetch(`/api/sensors?date=${month}`);
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data: SensorData[] = await response.json();
-
-      results[period.id] = data;
-
-      console.log(
-        `${period.year}/${period.month} の比較データ:`,
-        data
-      );
-    })
-  );
-}
-
-if (graphPeriod === "year") {
-  await Promise.all(
-    periods.map(async (period) => {
-      const year = String(period.year);
-
-      const response = await fetch(`/api/sensors?date=${year}`);
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data: SensorData[] = await response.json();
-
-      results[period.id] = data;
-
-      console.log(
-        `${period.year}年の比較データ:`,
-        data
-      );
-    })
-  );
-}
-
-      setSensorData(results);
-    } catch (error) {
-      console.error("センサーデータ取得エラー:", error);
-      setSensorData({});
-    }finally {
-      setIsLoading(false);
-    }
-  };
-
-  fetchData();
-}, [graphPeriod, periods]);
-
-  let xData: string[] = [];
-  let series: any[] = [];
+  let series: NonNullable<EChartsOption["series"]>;
+  const labels =
+    graphPeriod === "month"
+      ? Array.from({ length: 31 }, (_, i) => `${i + 1}`)
+      : graphPeriod === "year"
+        ? Array.from({ length: 12 }, (_, i) => `${i + 1}`)
+        : Array.from({ length: 48 }, (_, i) => {
+          const hour = Math.floor(i / 2);
+          const minute = i % 2 === 0 ? "00" : "30";
+          return `${String(hour).padStart(2, "0")}:${minute}`;
+        });
 
   if (graphPeriod === "month") {
-  // 月選択
-  xData = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
+    // 月選択
+    series = periods.map((period) => {
+      const periodData = sensorData[period.id] ?? [];
 
-  // センサーの種類とAPIの項目を対応させる
-  const sensorField =
-    sensorType === "air"
-      ? "outsideTemp"
-      : sensorType === "water"
-        ? "waterTemp"
-        : sensorType === "salt"
-          ? "salinity"
-          : doSensor === "DO02"
-          ? "oxygen2"
-          : doSensor === "DO03"
-            ? "oxygen3"
-          : "oxygen1";
+      return {
+        ...createLineSettings(period, 8),
 
-  series = periods.map((period) => {
-    const periodData = sensorData[period.id] ?? [];
+        data: labels.map((day) => {
+          const targetDay = String(day).padStart(2, "0");
 
-    return {
-      type: "line",
-      smooth: true,
-      symbol: "circle",
-      symbolSize: 8,
-      connectNulls: false,
-      color: period.color,
-      itemStyle: { color: period.color },
-
-      data: xData.map((day) => {
-        const targetDay = String(day).padStart(2, "0");
-
-        const records = periodData.filter((item) =>
-          item.datetime.includes(`-${targetDay}T`)
-        );
-
-        const values = records
-          .map((record) => record[sensorField])
-          .filter(
-            (value): value is number => value !== null
+          const records = getRecordsByDate(
+            periodData,
+            targetDay,
+            "day"
           );
 
-        if (values.length === 0) {
-          return null;
-        }
+          return getAverage(records, sensorField);
+        }),
+      };
+    });
+  } else if (graphPeriod === "year") {
+    // 年選択
+    // 1月～12月
+    series = periods.map((period) => {
+      const periodData = sensorData[period.id] ?? [];
 
-        // その日の平均値
-        return (
-          values.reduce((sum, value) => sum + value, 0) /
-          values.length
-        );
-      }),
-    };
-  });
-} else if (graphPeriod === "year") {
-  // 年選択
-  // 1月～12月
-  xData = Array.from({ length: 12 }, (_, i) => `${i + 1}`);
+      return {
+        ...createLineSettings(period, 8),
 
-  // センサーの種類とAPIの項目を対応させる
-  const sensorField =
-    sensorType === "air"
-      ? "outsideTemp"
-      : sensorType === "water"
-        ? "waterTemp"
-        : sensorType === "salt"
-          ? "salinity"
-          : doSensor === "DO02"
-          ? "oxygen2"
-          : doSensor === "DO03"
-            ? "oxygen3"
-          : "oxygen1";
+        data: labels.map((month) => {
+          const targetMonth = String(month).padStart(2, "0");
 
-  series = periods.map((period) => {
-    const periodData = sensorData[period.id] ?? [];
-
-    return {
-      type: "line",
-      smooth: true,
-      symbol: "circle",
-      symbolSize: 8,
-      connectNulls: false,
-      color: period.color,
-      itemStyle: { color: period.color },
-
-      data: xData.map((month) => {
-        const targetMonth = String(month).padStart(2, "0");
-
-        // その月のデータだけ取得
-        const records = periodData.filter((item) =>
-          item.datetime.includes(`-${targetMonth}-`)
-        );
-
-        // センサーの値だけ取り出す
-        const values = records
-          .map((record) => record[sensorField])
-          .filter(
-            (value): value is number => value !== null
+          // その月のデータだけ取得
+          const records = getRecordsByDate(
+            periodData,
+            targetMonth,
+            "month"
           );
 
-        // データがなければ表示しない
-        if (values.length === 0) {
-          return null;
-        }
-
-        // その月の平均値
-        return (
-          values.reduce((sum, value) => sum + value, 0) /
-          values.length
-        );
-      }),
-    };
-  });
+          // センサーの値だけ取り出す
+          return getAverage(records, sensorField);
+        }),
+      };
+    });
   } else {
     // 日選択：00:00～23:30の48点
-    xData = Array.from({ length: 48 }, (_, i) => {
-      const hour = Math.floor(i / 2);
-      const minute = i % 2 === 0 ? "00" : "30";
-
-      return `${String(hour).padStart(2, "0")}:${minute}`;
-    });
-
-    // センサーの種類とAPIの項目を対応させる
-    const sensorField =
-      sensorType === "air"
-        ? "outsideTemp"
-        : sensorType === "water"
-          ? "waterTemp"
-          : sensorType === "salt"
-            ? "salinity"
-            : doSensor === "DO02"
-          ? "oxygen2"
-          : doSensor === "DO03"
-            ? "oxygen3"
-            : "oxygen1";
-
     series = periods.map((period) => {
-  const periodData = sensorData[period.id] ?? [];
+      const periodData = sensorData[period.id] ?? [];
 
-  return {
-    type: "line",
-    smooth: true,
-    symbol: "circle",
-    symbolSize: 5,
-    connectNulls: false,
-    color: period.color,
-    itemStyle: { color: period.color },
+      return {
+        ...createLineSettings(period, 5),
 
-    data: xData.map((time) => {
-      const record = periodData.find((item) =>
-        item.datetime.includes(`T${time}:`)
-      );
+        data: labels.map((time) => {
+          const record = getRecordByTime(periodData, time);
 
-      return record
-        ? record[sensorField]
-        : null;
-    }),
-  };
-});
+          return record
+            ? record[sensorField]
+            : null;
+        }),
+      };
+    });
   }
 
   const xUnit =
@@ -307,17 +242,17 @@ if (graphPeriod === "year") {
       bottom: 70,
     },
 
-   xAxis: {
-  type: "category",
-  data: xData,
-  name: `[${xUnit}]`,
-  nameLocation: "end",
-  nameGap: 15,
+    xAxis: {
+      type: "category",
+      data: labels,
+      name: `[${xUnit}]`,
+      nameLocation: "end",
+      nameGap: 15,
 
-  axisLabel: {
-    interval: window.innerWidth <= 768 ? 0 : "auto",
-  },
-},
+      axisLabel: {
+        interval: window.innerWidth <= 768 ? 0 : "auto",
+      },
+    },
 
     yAxis: {
       type: "value",
@@ -330,19 +265,19 @@ if (graphPeriod === "year") {
   };
 
   return (
-  <div className="compare-chart-scroll">
-    <div className="compare-chart">
-       {isLoading ? null : (
-      <ReactECharts
-        option={option}
-        notMerge={true}
-        style={{
-          width: "100%",
-          height: "100%",
-        }}
-      />
-       )}
+    <div className="compare-chart-scroll">
+      <div className="compare-chart">
+        {isLoading ? null : (
+          <ReactECharts
+            option={option}
+            notMerge={true}
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+          />
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 }

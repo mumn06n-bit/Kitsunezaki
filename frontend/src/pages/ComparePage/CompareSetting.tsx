@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./CompareSetting.css";
 import PageLayout from "@/components/PageLayout";
+import type { CompareSettings, SensorKey } from "./compareData";
 
 export default function CompareSettingPage() {
 
@@ -9,17 +10,19 @@ export default function CompareSettingPage() {
   const navigate = useNavigate();
 
   // 相関モード
-  const [correlationMode, setCorrelationMode] = useState(false);
+  const [correlationMode, setCorrelationMode] = useState<boolean>(false);
 
   // 種類
-  const [sensorType, setSensorType] = useState("water");
-  const [correlationSensors, setCorrelationSensors] = useState<string[]>([]);
+  const [sensorType, setSensorType] = useState<SensorKey>("water");
+  const [correlationSensors, setCorrelationSensors] = useState<SensorKey[]>([]);
 
   // グラフ期間
-  const [graphPeriod, setGraphPeriod] = useState("month");
+  const [graphPeriod, setGraphPeriod] =
+    useState<CompareSettings["graphPeriod"]>("month");
 
   // 比較期間
-  const [periods, setPeriods] = useState([
+  const [periods, setPeriods] =
+  useState<CompareSettings["periods"]>([
     {
       id: 1,
       color: "#ff6b6b",
@@ -52,14 +55,17 @@ export default function CompareSettingPage() {
 
     if (!saved) return;
 
-    const settings = JSON.parse(saved);
+    try {
+      const settings: CompareSettings = JSON.parse(saved);
 
-    setCorrelationMode(settings.correlationMode);
-    setSensorType(settings.sensorType);
-    setCorrelationSensors(settings.correlationSensors
-      ?? []);
-    setGraphPeriod(settings.graphPeriod);
-    setPeriods(settings.periods);
+      setCorrelationMode(settings.correlationMode);
+      setSensorType(settings.sensorType);
+      setCorrelationSensors(settings.correlationSensors ?? []);
+      setGraphPeriod(settings.graphPeriod);
+      setPeriods(settings.periods);
+    } catch {
+      localStorage.removeItem("compareSettings");
+    }
 
   }, []);
 
@@ -158,7 +164,7 @@ export default function CompareSettingPage() {
   };
 
   // 相関モードでの種類選択
-  const toggleCorrelationSensor = (sensor: string) => {
+  const toggleCorrelationSensor = (sensor: SensorKey) => {
 
     // 既に選択されている場合
     if (correlationSensors.includes(sensor)) {
@@ -200,17 +206,15 @@ export default function CompareSettingPage() {
       alert("期間が重複しています。");
       return;
     }
-　
+
     // 設定を保存
-    const settings = {
-
-      correlationMode,
-      sensorType,
-      correlationSensors,
-      graphPeriod,
-      periods,
-
-    };
+    const settings: CompareSettings = {
+  correlationMode,
+  sensorType,
+  correlationSensors,
+  graphPeriod,
+  periods,
+};
 
     // localStorageに保存
     localStorage.setItem(
@@ -262,7 +266,7 @@ export default function CompareSettingPage() {
                   value="air"
                   checked={sensorType === "air"}
                   onChange={(e) =>
-                    setSensorType(e.target.value)
+                    setSensorType(e.target.value as SensorKey)
                   }
                 />
                 気温
@@ -275,7 +279,7 @@ export default function CompareSettingPage() {
                   value="water"
                   checked={sensorType === "water"}
                   onChange={(e) =>
-                    setSensorType(e.target.value)
+                    setSensorType(e.target.value as SensorKey)
                   }
                 />
                 水温
@@ -288,7 +292,7 @@ export default function CompareSettingPage() {
                   value="salt"
                   checked={sensorType === "salt"}
                   onChange={(e) =>
-                    setSensorType(e.target.value)
+                    setSensorType(e.target.value as SensorKey)
                   }
                 />
                 塩分濃度
@@ -301,19 +305,13 @@ export default function CompareSettingPage() {
                   value="oxygen"
                   checked={sensorType === "oxygen"}
                   onChange={(e) =>
-                    setSensorType(e.target.value)
+                    setSensorType(e.target.value as SensorKey)
                   }
                 />
                 溶存酸素
               </label>
 
             </div>
-
-            {correlationMode && correlationSensors.length < 2 && (
-              <p className="error-message">
-                種類が足りません
-              </p>
-            )}
 
           </div>
         )}
@@ -327,12 +325,14 @@ export default function CompareSettingPage() {
 
             <div className="radio-grid">
 
-              {[
-                { value: "air", label: "気温" },
-                { value: "water", label: "水温" },
-                { value: "salt", label: "塩分濃度" },
-                { value: "oxygen", label: "溶存酸素" },
-              ].map((sensor) => (
+              {(
+                [
+                  { value: "air", label: "気温" },
+                  { value: "water", label: "水温" },
+                  { value: "salt", label: "塩分濃度" },
+                  { value: "oxygen", label: "溶存酸素" },
+                ] satisfies { value: SensorKey; label: string }[]
+              ).map((sensor) => (
 
                 <label key={sensor.value}>
 
@@ -376,7 +376,9 @@ export default function CompareSettingPage() {
                 value="day"
                 checked={graphPeriod === "day"}
                 onChange={(e) =>
-                  setGraphPeriod(e.target.value)
+                  setGraphPeriod(
+                    e.target.value as CompareSettings["graphPeriod"]
+                  )
                 }
               />
               日
@@ -389,7 +391,9 @@ export default function CompareSettingPage() {
                 value="month"
                 checked={graphPeriod === "month"}
                 onChange={(e) =>
-                  setGraphPeriod(e.target.value)
+                  setGraphPeriod(
+                    e.target.value as CompareSettings["graphPeriod"]
+                  )
                 }
               />
               月
@@ -402,7 +406,9 @@ export default function CompareSettingPage() {
                 value="year"
                 checked={graphPeriod === "year"}
                 onChange={(e) =>
-                  setGraphPeriod(e.target.value)
+                  setGraphPeriod(
+                    e.target.value as CompareSettings["graphPeriod"]
+                  )
                 }
               />
               年

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import "./CompareScatter.css";
-import { getSensorUnit } from "./compareData.ts";
+import { getSensorUnit } from "./compareData";
+import type { CompareSettings, SensorKey } from "./compareData";
 
 type CompareScatterProps = {
-  settings: any;
+  settings: CompareSettings;
 };
 
 type SensorData = {
@@ -25,7 +26,7 @@ export default function CompareScatter({
   >({});
 
   // センサーの並び順
-  const sensorPriority = [
+  const sensorPriority: SensorKey[] = [
     "air",
     "water",
     "salt",
@@ -34,7 +35,7 @@ export default function CompareScatter({
 
   // APIからデータを取得
   useEffect(() => {
-    if (!settings?.periods || settings.periods.length === 0) {
+    if (settings.periods.length === 0) {
       setSensorData({});
       return;
     }
@@ -44,27 +45,15 @@ export default function CompareScatter({
 
       try {
         await Promise.all(
-          settings.periods.map(async (period: any) => {
+          settings.periods.map(async (period) => {
             let date = "";
 
             // 日：その日のデータを取得
             if (settings.graphPeriod === "day") {
-              date = `${period.year}-${String(
-                period.month
-              ).padStart(2, "0")}-${String(
-                period.day
-              ).padStart(2, "0")}`;
-            }
-
-            // 月：その月のデータを取得
-            if (settings.graphPeriod === "month") {
-              date = `${period.year}-${String(
-                period.month
-              ).padStart(2, "0")}`;
-            }
-
-            // 年：その年のデータを取得
-            if (settings.graphPeriod === "year") {
+              date = `${period.year}-${String(period.month).padStart(2, "0")}-${String(period.day).padStart(2, "0")}`;
+            } else if (settings.graphPeriod === "month") {
+              date = `${period.year}-${String(period.month).padStart(2, "0")}`;
+            } else if (settings.graphPeriod === "year") {
               date = String(period.year);
             }
 
@@ -82,11 +71,6 @@ export default function CompareScatter({
               await response.json();
 
             results[period.id] = data;
-
-            console.log(
-              `相関図 ${date} のデータ:`,
-              data
-            );
           })
         );
 
@@ -102,22 +86,22 @@ export default function CompareScatter({
     };
 
     fetchData();
-  }, [settings?.graphPeriod, settings?.periods]);
+  }, [settings.graphPeriod, settings.periods]);
 
   // 相関図のX軸・Y軸に使用するセンサーを取得
   const getCorrelationAxes = () => {
-    if (!settings?.correlationMode) {
+    if (!settings.correlationMode) {
       return null;
     }
 
     const sensors = settings.correlationSensors;
 
-    if (!sensors || sensors.length !== 2) {
+    if (sensors.length !== 2) {
       return null;
     }
 
     const sortedSensors = [...sensors].sort(
-      (a: string, b: string) =>
+      (a, b) =>
         sensorPriority.indexOf(a) -
         sensorPriority.indexOf(b)
     );
@@ -129,43 +113,35 @@ export default function CompareScatter({
   };
 
   // センサー名を表示用に変換
-  const getSensorNameByValue = (sensor: string) => {
-    const names: { [key: string]: string } = {
+  const getSensorNameByValue = (sensor: SensorKey) => {
+    const names: Record<SensorKey, string> = {
       air: "気温",
       water: "水温",
       salt: "塩分濃度",
       oxygen: "溶存酸素",
     };
 
-    return names[sensor] ?? "";
+    return names[sensor];
   };
 
   // センサー名からAPIデータのフィールド名を取得
   const getSensorField = (
-    sensor: string
-  ): keyof Omit<SensorData, "datetime"> | null => {
+    sensor: SensorKey
+  ): keyof Omit<SensorData, "datetime"> => {
     switch (sensor) {
       case "air":
         return "outsideTemp";
-
       case "water":
         return "waterTemp";
-
       case "salt":
         return "salinity";
-
       case "oxygen":
         return "oxygen1";
-
-      default:
-        return null;
     }
   };
 
   // 選択した期間の表示名
-  const getPeriodText = (period: any) => {
-    if (!settings) return "";
-
+  const getPeriodText = (period: CompareSettings["periods"][number]) => {
     switch (settings.graphPeriod) {
       case "year":
         return `${period.year}`;
@@ -205,6 +181,34 @@ export default function CompareScatter({
     );
   };
 
+  // 指定した期間の平均データを作る
+  const createAverageRecord = (
+    datetime: string,
+    records: SensorData[]
+  ): SensorData => {
+    return {
+      datetime,
+      waterTemp: getAverage(
+        records.map((item) => item.waterTemp)
+      ),
+      outsideTemp: getAverage(
+        records.map((item) => item.outsideTemp)
+      ),
+      salinity: getAverage(
+        records.map((item) => item.salinity)
+      ),
+      oxygen1: getAverage(
+        records.map((item) => item.oxygen1)
+      ),
+      oxygen2: getAverage(
+        records.map((item) => item.oxygen2)
+      ),
+      oxygen3: getAverage(
+        records.map((item) => item.oxygen3)
+      ),
+    };
+  };
+
   // 日ごとの平均データを作る
   const createDailyAverageData = (
     data: SensorData[]
@@ -222,27 +226,7 @@ export default function CompareScatter({
         continue;
       }
 
-      dailyData.push({
-        datetime: `${targetDay}`,
-        waterTemp: getAverage(
-          records.map((item) => item.waterTemp)
-        ),
-        outsideTemp: getAverage(
-          records.map((item) => item.outsideTemp)
-        ),
-        salinity: getAverage(
-          records.map((item) => item.salinity)
-        ),
-        oxygen1: getAverage(
-          records.map((item) => item.oxygen1)
-        ),
-        oxygen2: getAverage(
-          records.map((item) => item.oxygen2)
-        ),
-        oxygen3: getAverage(
-          records.map((item) => item.oxygen3)
-        ),
-      });
+      dailyData.push(createAverageRecord(targetDay, records));
     }
 
     return dailyData;
@@ -268,27 +252,9 @@ export default function CompareScatter({
         continue;
       }
 
-      monthlyData.push({
-        datetime: `${targetMonth}`,
-        waterTemp: getAverage(
-          records.map((item) => item.waterTemp)
-        ),
-        outsideTemp: getAverage(
-          records.map((item) => item.outsideTemp)
-        ),
-        salinity: getAverage(
-          records.map((item) => item.salinity)
-        ),
-        oxygen1: getAverage(
-          records.map((item) => item.oxygen1)
-        ),
-        oxygen2: getAverage(
-          records.map((item) => item.oxygen2)
-        ),
-        oxygen3: getAverage(
-          records.map((item) => item.oxygen3)
-        ),
-      });
+      monthlyData.push(
+        createAverageRecord(targetMonth, records)
+      );
     }
 
     return monthlyData;
@@ -298,16 +264,13 @@ export default function CompareScatter({
   const getCorrelationChartOption = () => {
     const axes = getCorrelationAxes();
 
-    if (!axes || !settings) {
+    if (!axes) {
       return {};
     }
 
     const xField = getSensorField(axes.x);
     const yField = getSensorField(axes.y);
 
-    if (!xField || !yField) {
-      return {};
-    }
 
     return {
       grid: {
@@ -315,13 +278,12 @@ export default function CompareScatter({
         right: 20,
         top: 30,
         bottom: 60,
-        
+
       },
 
       xAxis: {
         type: "value",
         name: `${getSensorNameByValue(axes.x)} [${getSensorUnit(axes.x)}]`,
-        //name: getSensorNameByValue(axes.x),
         nameLocation: "middle",
         nameGap: 35,
       },
@@ -329,12 +291,11 @@ export default function CompareScatter({
       yAxis: {
         type: "value",
         name: `${getSensorNameByValue(axes.y)} [${getSensorUnit(axes.y)}]`,
-        //name: getSensorNameByValue(axes.y),
         nameLocation: "middle",
         nameGap: 35,
       },
 
-      series: settings.periods.map((period: any) => {
+      series: settings.periods.map((period) => {
         let periodData =
           sensorData[period.id] ?? [];
 
@@ -351,9 +312,7 @@ export default function CompareScatter({
         if (settings.graphPeriod === "month") {
           periodData =
             createDailyAverageData(periodData);
-        }
-
-        if (settings.graphPeriod === "year") {
+        } else if (settings.graphPeriod === "year") {
           periodData =
             createMonthlyAverageData(periodData);
         }
@@ -392,11 +351,7 @@ export default function CompareScatter({
 
   const axes = getCorrelationAxes();
 
-  if (
-    !settings ||
-    !settings.correlationMode ||
-    !axes
-  ) {
+  if (!settings.correlationMode || !axes) {
     return null;
   }
 

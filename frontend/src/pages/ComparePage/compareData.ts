@@ -28,7 +28,7 @@ const SENSOR_UNIT: Record<SensorKey, string> = {
   oxygen: "mg/L",
 };
 
-export function getSensorUnit(sensor: SensorKey) {
+export function getSensorUnit(sensor: SensorKey): string {
   return SENSOR_UNIT[sensor];
 }
 
