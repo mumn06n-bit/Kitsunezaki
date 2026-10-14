@@ -102,7 +102,7 @@ export const fetchLatestSensorPositions =
 // ---- グラフ画面で共通に使う部品 ----
 
 // 数値の項目名（"datetime" 以外）
-type ValueField = Exclude<keyof SensorRecord, "datetime">;
+type ValueField = Exclude<keyof SensorRecord, "datetime" | "positions">;
 
 // 設定画面のDOセンサ → 統合データのどの項目か
 export const DO_FIELD: Record<string, ValueField> = {
