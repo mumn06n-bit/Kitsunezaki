@@ -22,22 +22,22 @@ export default function CompareSettingPage() {
 
   // 比較期間
   const [periods, setPeriods] =
-  useState<CompareSettings["periods"]>([
-    {
-      id: 1,
-      color: "#ff6b6b",
-      year: 2026,
-      month: 5,
-      day: 1,
-    },
-    {
-      id: 2,
-      color: "#6ba8ff",
-      year: 2026,
-      month: 6,
-      day: 1,
-    },
-  ]);
+    useState<CompareSettings["periods"]>([
+      {
+        id: 1,
+        color: "#ff6b6b",
+        year: 2026,
+        month: 5,
+        day: 1,
+      },
+      {
+        id: 2,
+        color: "#6ba8ff",
+        year: 2026,
+        month: 6,
+        day: 1,
+      },
+    ]);
 
   // 期間の色
   const colors = [
@@ -138,30 +138,40 @@ export default function CompareSettingPage() {
   };
 
   // 重複期間の判定
-  const hasDuplicatePeriods = () => {
 
+  // 重複期間の判定
+  const hasDuplicatePeriods = () => {
     const keys = periods.map((period) => {
+      let dateKey = "";
 
       switch (graphPeriod) {
-
         case "year":
-          return `${period.year}`;
+          dateKey = `${period.year}`;
+          break;
 
         case "month":
-          return `${period.year}-${period.month}`;
+          dateKey = `${period.year}-${period.month}`;
+          break;
 
         case "day":
-          return `${period.year}-${period.month}-${period.day}`;
-
-        default:
-          return "";
+          dateKey = `${period.year}-${period.month}-${period.day}`;
+          break;
       }
 
+      // 溶存酸素の場合は日付とDO番号の両方で判定
+      if (!correlationMode && sensorType === "oxygen") {
+        const oxygenSensor = period.oxygenSensor ?? "oxygen1";
+        return `${dateKey}-${oxygenSensor}`;
+      }
+
+      // それ以外は日付だけで判定
+      return dateKey;
     });
 
     return new Set(keys).size !== keys.length;
-
   };
+
+
 
   // 相関モードでの種類選択
   const toggleCorrelationSensor = (sensor: SensorKey) => {
@@ -209,12 +219,12 @@ export default function CompareSettingPage() {
 
     // 設定を保存
     const settings: CompareSettings = {
-  correlationMode,
-  sensorType,
-  correlationSensors,
-  graphPeriod,
-  periods,
-};
+      correlationMode,
+      sensorType,
+      correlationSensors,
+      graphPeriod,
+      periods,
+    };
 
     // localStorageに保存
     localStorage.setItem(
@@ -515,7 +525,36 @@ export default function CompareSettingPage() {
 
                 <span>日</span>
 
+                {!correlationMode && sensorType === "oxygen" && (
+                <div className="oxygen-select">
+                  <select
+                    value={period.oxygenSensor ?? "oxygen1"}
+                    onChange={(e) => {
+                      const oxygenSensor = e.target.value as
+                        | "oxygen1"
+                        | "oxygen2"
+                        | "oxygen3";
+
+                      setPeriods((prev) =>
+                        prev.map((item) =>
+                          item.id === period.id
+                            ? { ...item, oxygenSensor }
+                            : item
+                        )
+                      );
+                    }}
+                  >
+                    <option value="oxygen1">DO1</option>
+                    <option value="oxygen2">DO2</option>
+                    <option value="oxygen3">DO3</option>
+                  </select>
+                </div>
+              )}
+
               </div>
+
+              {/* 溶存酸素センサー */}
+              
 
               <button
                 className="delete-button"

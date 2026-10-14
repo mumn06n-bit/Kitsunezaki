@@ -76,21 +76,22 @@ export default function CompareChart({
   settings: CompareSettings;
 }) {
   const { sensorType, graphPeriod, periods } = settings;
-  const doSensor = localStorage.getItem("doSensor") ?? "DO01";
   const unit = getSensorUnit(sensorType);
 
-  const sensorField: SensorField =
-    sensorType === "air"
-      ? "outsideTemp"
-      : sensorType === "water"
-        ? "waterTemp"
-        : sensorType === "salt"
-          ? "salinity"
-          : doSensor === "DO02"
-            ? "oxygen2"
-            : doSensor === "DO03"
-              ? "oxygen3"
-              : "oxygen1";
+const getSensorField = (
+  period: CompareSettings["periods"][number]
+): SensorField => {
+  switch (sensorType) {
+    case "air":
+      return "outsideTemp";
+    case "water":
+      return "waterTemp";
+    case "salt":
+      return "salinity";
+    case "oxygen":
+      return period.oxygenSensor ?? "oxygen1";
+  }
+};
 
   const [sensorData, setSensorData] = useState<
     Record<number, SensorData[]>
@@ -180,7 +181,7 @@ export default function CompareChart({
             "day"
           );
 
-          return getAverage(records, sensorField);
+          return getAverage(records, getSensorField(period));
         }),
       };
     });
@@ -204,7 +205,7 @@ export default function CompareChart({
           );
 
           // センサーの値だけ取り出す
-          return getAverage(records, sensorField);
+          return getAverage(records, getSensorField(period));
         }),
       };
     });
@@ -220,7 +221,7 @@ export default function CompareChart({
           const record = getRecordByTime(periodData, time);
 
           return record
-            ? record[sensorField]
+            ? record[getSensorField(period)]
             : null;
         }),
       };

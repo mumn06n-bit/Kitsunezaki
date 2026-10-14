@@ -9,6 +9,7 @@ export type Period = {
   year: number;
   month: number;
   day: number;
+  oxygenSensor?: "oxygen1" | "oxygen2" | "oxygen3";
 };
 
 // 比較画面の設定全体
