@@ -135,7 +135,7 @@ export default function DataPage() {
 
         setAllRecords(sorted);
       } catch (error) {
-        console.error("センサーデータの取得に失敗しました:", error);
+        console.error("センサデータの取得に失敗しました:", error);
 
         if (!ignore) {
           setAllRecords([]);
@@ -287,10 +287,7 @@ export default function DataPage() {
     return (
       <div className="stale-message-area">
         <span className="stale-message">
-          過去のデータを表示しています
-        </span>
-        <span className="stale-message">
-          最新のデータ：{formatDateTime(status.latestDatetime)}
+          {formatDateTime(status.latestDatetime)}時点
         </span>
       </div>
     );
