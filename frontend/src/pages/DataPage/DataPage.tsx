@@ -425,8 +425,8 @@ export default function DataPage() {
         <section className="sensor-data-area">
           <div
             className={`data-row ${doStatus.stale && !wholePageError && !showFetchError
-                ? "has-stale-message"
-                : ""
+              ? "has-stale-message"
+              : ""
               }`}
           >
             <div>
@@ -465,8 +465,18 @@ export default function DataPage() {
               </>
             ) : (
               <>
-                <p>センサデータを取得できませんでした。</p>
-                <p>通信状態を確認して、再度お試しください。</p>
+
+                {/* ーここ2行はAPI復旧したら解除してー */}
+                {/* <p>センサデータを取得できませんでした。</p> */}
+                {/* <p>通信状態を確認して、再度お試しください。</p> */}
+                {/* ーーーーーーーーーーーーーーーーー */}
+
+                {/* ーAPI復旧したら消すー */}
+                <p>
+                  現在、APIが停止しているため、<br />データを表示できません。<br />ご迷惑おかけして申し訳ございません。<br />復旧までしばらくお待ちください。
+                </p>
+                {/* ーーーーーーーーーーー */}
+
               </>
             )}
           </div>

@@ -8,7 +8,7 @@ import type { CompareSettings } from "./compareData";
 
 export default function ComparePage() {
 
- const [settings, setSettings] = useState<CompareSettings | null>(null);
+  const [settings, setSettings] = useState<CompareSettings | null>(null);
 
   // 保存された設定を読み込む
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function ComparePage() {
 
   }, []);
 
-   // 種類表示
+  // 種類表示
   const getSensorName = () => {
     if (!settings) return "";
 
@@ -44,34 +44,34 @@ export default function ComparePage() {
     // 通常モード
     return names[settings.sensorType];
   };
-// DOセンサーの表示名
-const DO_NAMES = {
-  oxygen1: "DO1",
-  oxygen2: "DO2",
-  oxygen3: "DO3",
-};
+  // DOセンサーの表示名
+  const DO_NAMES = {
+    oxygen1: "DO1",
+    oxygen2: "DO2",
+    oxygen3: "DO3",
+  };
 
-// 期間表示（溶存酸素のときは DO センサー名も付ける）
-const getPeriodText = (period: CompareSettings["periods"][number]) => {
-  if (!settings) return "";
+  // 期間表示（溶存酸素のときは DO センサー名も付ける）
+  const getPeriodText = (period: CompareSettings["periods"][number]) => {
+    if (!settings) return "";
 
-  const month = String(period.month).padStart(2, "0");
-  const day = String(period.day).padStart(2, "0");
+    const month = String(period.month).padStart(2, "0");
+    const day = String(period.day).padStart(2, "0");
 
-  const dateText =
-    settings.graphPeriod === "year"
-      ? `${period.year}`
-      : settings.graphPeriod === "month"
-        ? `${period.year}/${month}`
-        : `${period.year}/${month}/${day}`;
+    const dateText =
+      settings.graphPeriod === "year"
+        ? `${period.year}`
+        : settings.graphPeriod === "month"
+          ? `${period.year}/${month}`
+          : `${period.year}/${month}/${day}`;
 
-  // 相関モードでない溶存酸素のときだけ、DO センサー名を付ける
-  if (!settings.correlationMode && settings.sensorType === "oxygen") {
-    return `${dateText} (${DO_NAMES[period.oxygenSensor ?? "oxygen1"]})`;
-  }
+    // 相関モードでない溶存酸素のときだけ、DO センサー名を付ける
+    if (!settings.correlationMode && settings.sensorType === "oxygen") {
+      return `${dateText} (${DO_NAMES[period.oxygenSensor ?? "oxygen1"]})`;
+    }
 
-  return dateText;
-};
+    return dateText;
+  };
   return (
 
     <PageLayout title="比較">
@@ -116,7 +116,7 @@ const getPeriodText = (period: CompareSettings["periods"][number]) => {
               }}
             >
               {getPeriodText(period)}
-              
+
 
             </div>
 
@@ -139,6 +139,12 @@ const getPeriodText = (period: CompareSettings["periods"][number]) => {
         {settings && settings.correlationMode && (
           <CompareScatter settings={settings} />
         )}
+
+        {/* ーAPI復旧したら消すー */}
+        <div className="compare-error-message">
+          現在、APIが停止しているため、<br />データを表示できません。<br />ご迷惑おかけして申し訳ございません。<br />復旧までしばらくお待ちください。
+        </div>
+        {/* ーーーーーーーーーーー */}
 
       </section>
 

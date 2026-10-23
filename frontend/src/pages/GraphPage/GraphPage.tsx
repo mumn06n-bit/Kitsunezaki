@@ -5,10 +5,10 @@ import "./GraphPage.css";
 
 // データ種類ごとの単位と目標値
 const GRAPH_TYPES: Record<string, { unit: string; target: { key: string; default: number } | null }> = {
-  気温:     { unit: "℃",    target: null },
-  水温:     { unit: "℃",    target: { key: "temperature", default: 20 } },
-  塩分濃度: { unit: "‰",    target: { key: "salinity",    default: 30 } },
-  溶存酸素: { unit: "mg/L", target: { key: "oxygen",      default: 3.5 } },
+  気温: { unit: "℃", target: null },
+  水温: { unit: "℃", target: { key: "temperature", default: 20 } },
+  塩分濃度: { unit: "‰", target: { key: "salinity", default: 30 } },
+  溶存酸素: { unit: "mg/L", target: { key: "oxygen", default: 3.5 } },
 };
 
 const GRAPH_MODES = ["日", "月", "年"];
@@ -53,6 +53,13 @@ export default function GraphPage() {
 
       <section className="graph-area">
         <GraphChart graphType={graphType} graphMode={graphMode} unit={unit} targetValue={targetValue} />
+        
+        {/* ーAPI復旧したら消すー */}
+        <div className="graph-error-message">
+          現在、APIが停止しているため、<br />データを表示できません。<br />ご迷惑おかけして申し訳ございません。<br />復旧までしばらくお待ちください。
+        </div>
+        {/* ーーーーーーーーーーー */}
+      
       </section>
     </PageLayout>
   );

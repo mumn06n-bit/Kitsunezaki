@@ -82,3 +82,33 @@
     overflow-x: auto;
 
 }
+
+/* API復旧したら消す */
+
+/* グラフエリア */
+.graph-area {
+    flex: 1;
+    margin-top: 5px;
+    padding: 10px;
+    background: var(--white);
+    overflow-x: auto;
+
+    position: relative;
+}
+
+/* ーAPI復旧したら消すー */
+.graph-error-message {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    color: #b42318;
+    font-size: 18px;
+    text-align: center;
+
+    background: rgba(255, 255, 255, 0.85);
+    z-index: 10;
+}
+/* ーーーーーーーーーーー */
