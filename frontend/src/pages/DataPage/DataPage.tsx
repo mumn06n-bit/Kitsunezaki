@@ -425,8 +425,8 @@ export default function DataPage() {
         <section className="sensor-data-area">
           <div
             className={`data-row ${doStatus.stale && !wholePageError && !showFetchError
-                ? "has-stale-message"
-                : ""
+              ? "has-stale-message"
+              : ""
               }`}
           >
             <div>
@@ -465,8 +465,10 @@ export default function DataPage() {
               </>
             ) : (
               <>
+
                 <p>センサデータを取得できませんでした。</p>
                 <p>通信状態を確認して、再度お試しください。</p>
+
               </>
             )}
           </div>
