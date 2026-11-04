@@ -8,7 +8,7 @@ import type { CompareSettings } from "./compareData";
 
 export default function ComparePage() {
 
- const [settings, setSettings] = useState<CompareSettings | null>(null);
+const [settings, setSettings] = useState<CompareSettings | null>(null);
 
   // 保存された設定を読み込む
   useEffect(() => {
@@ -65,8 +65,11 @@ const getPeriodText = (period: CompareSettings["periods"][number]) => {
         ? `${period.year}/${month}`
         : `${period.year}/${month}/${day}`;
 
-  // 相関モードでない溶存酸素のときだけ、DO センサー名を付ける
-  if (!settings.correlationMode && settings.sensorType === "oxygen") {
+        const usesOxygen = settings.correlationMode
+    ? settings.correlationSensors.includes("oxygen")
+    : settings.sensorType === "oxygen";
+
+  if (usesOxygen) {
     return `${dateText} (${DO_NAMES[period.oxygenSensor ?? "oxygen1"]})`;
   }
 
