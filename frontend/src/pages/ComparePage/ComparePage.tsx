@@ -140,12 +140,6 @@ export default function ComparePage() {
           <CompareScatter settings={settings} />
         )}
 
-        {/* ーAPI復旧したら消すー */}
-        <div className="compare-error-message">
-          現在、APIが停止しているため、<br />データを表示できません。<br />ご迷惑おかけして申し訳ございません。<br />復旧までしばらくお待ちください。
-        </div>
-        {/* ーーーーーーーーーーー */}
-
       </section>
 
     </PageLayout>
