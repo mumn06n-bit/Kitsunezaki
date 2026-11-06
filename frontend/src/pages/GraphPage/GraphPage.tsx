@@ -23,8 +23,6 @@ export default function GraphPage() {
     ? Number(localStorage.getItem(target.key) ?? target.default)
     : null;
 
-  // 今日の日付を取得
-  const today = new Date();
 
   return (
     <PageLayout title="グラフ">
