@@ -61,6 +61,7 @@ const SOURCES: {
   },
 ];
 
+// GPS情報を緯度・経度に変換する
 function convertGPS(a: number, b: number, c: number) {
   const value = Math.round(a * 100);
 
@@ -81,34 +82,6 @@ function convertGPS(a: number, b: number, c: number) {
   };
 }
 
-// DO2用：10進数の緯度・経度を度・分形式に変換する
-function convertDecimalToDMS(value: number, type: "latitude" | "longitude") {
-  const degrees = Math.floor(Math.abs(value));
-  const minutes = (Math.abs(value) - degrees) * 60;
-
-  const hemisphere =
-    type === "latitude"
-      ? value >= 0 ? "N" : "S"
-      : value >= 0 ? "E" : "W";
-
-  return `${degrees}°${minutes.toFixed(3)}'${hemisphere}`;
-}
-
-// DO2用：タイムゾーン指定のない日時を日本時間として扱う
-const toJstKeyForDO2 = (value: string) => {
-  const match = value.match(
-    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}):\d{2}$/
-  );
-
-  if (!match) return null;
-
-  const date = new Date(`${match[1]}T${match[2]}:00Z`);
-
-  if (Number.isNaN(date.getTime())) return null;
-
-  return `${match[1]}T${match[2]}:00`;
-};
-
 const emptyPosition = (): SensorPosition => ({
   latitude: null,
   longitude: null,
@@ -116,17 +89,22 @@ const emptyPosition = (): SensorPosition => ({
   longitudeDMS: null,
 });
 
+// UTCの日時を日本時間に変換する
 const toJstKey = (value: string) => {
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return null;
 
   const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+
   return jst.toISOString().slice(0, 16) + ":00";
 };
 
 const toNumber = (value: string | undefined) => {
   if (value === undefined || value.trim() === "") return null;
+
   const num = Number(value);
+
   return Number.isFinite(num) ? num : null;
 };
 
@@ -139,6 +117,7 @@ const fetchWithRetry = async (url: string, retries = 1) => {
       });
     } catch (error) {
       if (attempt >= retries) throw error;
+
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
@@ -203,11 +182,8 @@ export default async function handler(
     for (const row of result.value) {
       if (!row[1]) continue;
 
-      // DO2だけ専用の日時処理を使用する
-      const key =
-        source.name === "do2"
-          ? toJstKeyForDO2(row[1])
-          : toJstKey(row[1]);
+      // 全センサー共通の日時変換処理
+      const key = toJstKey(row[1]);
 
       if (!key) continue;
       if (date && !key.startsWith(date)) continue;
@@ -239,42 +215,20 @@ export default async function handler(
         record[field as ValueKey] = toNumber(row[column as number]);
       }
 
-      // DO2専用の位置情報取得処理
-      if (source.name === "do2") {
-        const latitude = toNumber(row[2]);
-        const longitude = toNumber(row[3]);
+      // 全センサー共通のGPS変換処理
+      const a = toNumber(row[7]);
+      const b = toNumber(row[8]);
+      const c = toNumber(row[9]);
 
-        if (
-          latitude !== null &&
-          longitude !== null &&
-          latitude >= -90 &&
-          latitude <= 90 &&
-          longitude >= -180 &&
-          longitude <= 180
-        ) {
-          record.positions.DO02 = {
-            latitude,
-            longitude,
-            latitudeDMS: convertDecimalToDMS(latitude, "latitude"),
-            longitudeDMS: convertDecimalToDMS(longitude, "longitude"),
-          };
-        }
-      } else {
-        // DO1・DO3・塩分の既存GPS変換処理
-        const a = toNumber(row[7]);
-        const b = toNumber(row[8]);
-        const c = toNumber(row[9]);
+      if (a !== null && b !== null && c !== null) {
+        const gps = convertGPS(a, b, c);
 
-        if (a !== null && b !== null && c !== null) {
-          const gps = convertGPS(a, b, c);
-
-          record.positions[source.positionKey] = {
-            latitude: gps.latitudeDecimal,
-            longitude: gps.longitudeDecimal,
-            latitudeDMS: gps.latitudeDMS,
-            longitudeDMS: gps.longitudeDMS,
-          };
-        }
+        record.positions[source.positionKey] = {
+          latitude: gps.latitudeDecimal,
+          longitude: gps.longitudeDecimal,
+          latitudeDMS: gps.latitudeDMS,
+          longitudeDMS: gps.longitudeDMS,
+        };
       }
     }
   });
