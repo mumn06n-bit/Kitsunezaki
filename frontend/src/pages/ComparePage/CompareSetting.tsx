@@ -528,8 +528,10 @@ export default function CompareSettingPage() {
                 <span>日</span>
 
                 {/* 溶存酸素センサー */}
-                {!correlationMode &&
-                  sensorType === "oxygen" && (
+                {(
+                  (!correlationMode && sensorType === "oxygen") ||
+                  (correlationMode && correlationSensors.includes("oxygen"))
+                ) && (
                     <div className="oxygen-select">
                       <select
                         value={

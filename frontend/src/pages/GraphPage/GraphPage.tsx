@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import GraphChart from "./GraphChart";
@@ -18,7 +19,12 @@ export default function GraphPage() {
   const [graphMode, setGraphMode] = useState("月");
 
   const { unit, target } = GRAPH_TYPES[graphType];
-  const targetValue = target ? Number(localStorage.getItem(target.key) ?? target.default) : null;
+  const targetValue = target
+    ? Number(localStorage.getItem(target.key) ?? target.default)
+    : null;
+
+  // 今日の日付を取得
+  const today = new Date();
 
   return (
     <PageLayout title="グラフ">
@@ -52,7 +58,12 @@ export default function GraphPage() {
       </section>
 
       <section className="graph-area">
-        <GraphChart graphType={graphType} graphMode={graphMode} unit={unit} targetValue={targetValue} />      
+        <GraphChart
+          graphType={graphType}
+          graphMode={graphMode}
+          unit={unit}
+          targetValue={targetValue}
+        />
       </section>
     </PageLayout>
   );
