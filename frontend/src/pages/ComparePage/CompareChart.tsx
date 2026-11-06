@@ -335,35 +335,35 @@ const hasNoData =
       },
     },
 
-
-    yAxis: {
-      type: "value",
-      min:
-        sensorType === "salt"
-          ? 25
-          : sensorType === "oxygen"
-            ? 2
-            : undefined,
-      max:
-        sensorType === "salt"
-          ? 35
-          : sensorType === "oxygen"
-            ? 9
-            : undefined,
-      interval:
-        sensorType === "salt" || sensorType === "oxygen"
-          ? 1
-          : undefined,
-      axisLabel: {
-        formatter: (value: string | number) =>
-          sensorType === "oxygen"
-            ? Number(value).toFixed(1)
-            : String(value),
-      },
-      name: `[${unit}]`,
-      nameLocation: "end",
-      nameGap: 15,
-    },
+    
+yAxis: {
+  type: "value",
+  min:
+    sensorType === "salt"
+      ? 25
+      : sensorType === "oxygen"
+        ? 2
+        : undefined,
+  max:
+    sensorType === "salt"
+      ? 35
+      : sensorType === "oxygen"
+        ? 15
+        : undefined,
+  interval:
+    sensorType === "salt" || sensorType === "oxygen"
+      ? 1
+      : undefined,
+  axisLabel: {
+    formatter: (value: string | number) =>
+      sensorType === "oxygen"
+        ? Number(value).toFixed(1)
+        : String(value),
+  },
+  name: `[${unit}]`,
+  nameLocation: "end",
+  nameGap: 15,
+},
 
 
     dataZoom,

@@ -131,7 +131,7 @@ export default function GraphChart({
             max: graphType === "塩分濃度"
                 ? 35
                 : graphType === "溶存酸素"
-                    ? 9
+                    ? 15
                     : hasNoData ? 30 : undefined,
             interval: graphType === "塩分濃度"
                 ? 1

@@ -81,6 +81,34 @@ function convertGPS(a: number, b: number, c: number) {
   };
 }
 
+// DO2用：10進数の緯度・経度を度・分形式に変換する
+function convertDecimalToDMS(value: number, type: "latitude" | "longitude") {
+  const degrees = Math.floor(Math.abs(value));
+  const minutes = (Math.abs(value) - degrees) * 60;
+
+  const hemisphere =
+    type === "latitude"
+      ? value >= 0 ? "N" : "S"
+      : value >= 0 ? "E" : "W";
+
+  return `${degrees}°${minutes.toFixed(3)}'${hemisphere}`;
+}
+
+// DO2用：タイムゾーン指定のない日時を日本時間として扱う
+const toJstKeyForDO2 = (value: string) => {
+  const match = value.match(
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}):\d{2}$/
+  );
+
+  if (!match) return null;
+
+  const date = new Date(`${match[1]}T${match[2]}:00Z`);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return `${match[1]}T${match[2]}:00`;
+};
+
 const emptyPosition = (): SensorPosition => ({
   latitude: null,
   longitude: null,
@@ -175,7 +203,12 @@ export default async function handler(
     for (const row of result.value) {
       if (!row[1]) continue;
 
-      const key = toJstKey(row[1]);
+      // DO2だけ専用の日時処理を使用する
+      const key =
+        source.name === "do2"
+          ? toJstKeyForDO2(row[1])
+          : toJstKey(row[1]);
+
       if (!key) continue;
       if (date && !key.startsWith(date)) continue;
 
@@ -201,23 +234,47 @@ export default async function handler(
         records.set(key, record);
       }
 
+      // 各センサーの数値データを取得
       for (const [field, column] of Object.entries(source.columns)) {
         record[field as ValueKey] = toNumber(row[column as number]);
       }
 
-      const a = toNumber(row[7]);
-      const b = toNumber(row[8]);
-      const c = toNumber(row[9]);
+      // DO2専用の位置情報取得処理
+      if (source.name === "do2") {
+        const latitude = toNumber(row[2]);
+        const longitude = toNumber(row[3]);
 
-      if (a !== null && b !== null && c !== null) {
-        const gps = convertGPS(a, b, c);
+        if (
+          latitude !== null &&
+          longitude !== null &&
+          latitude >= -90 &&
+          latitude <= 90 &&
+          longitude >= -180 &&
+          longitude <= 180
+        ) {
+          record.positions.DO02 = {
+            latitude,
+            longitude,
+            latitudeDMS: convertDecimalToDMS(latitude, "latitude"),
+            longitudeDMS: convertDecimalToDMS(longitude, "longitude"),
+          };
+        }
+      } else {
+        // DO1・DO3・塩分の既存GPS変換処理
+        const a = toNumber(row[7]);
+        const b = toNumber(row[8]);
+        const c = toNumber(row[9]);
 
-        record.positions[source.positionKey] = {
-          latitude: gps.latitudeDecimal,
-          longitude: gps.longitudeDecimal,
-          latitudeDMS: gps.latitudeDMS,
-          longitudeDMS: gps.longitudeDMS,
-        };
+        if (a !== null && b !== null && c !== null) {
+          const gps = convertGPS(a, b, c);
+
+          record.positions[source.positionKey] = {
+            latitude: gps.latitudeDecimal,
+            longitude: gps.longitudeDecimal,
+            latitudeDMS: gps.latitudeDMS,
+            longitudeDMS: gps.longitudeDMS,
+          };
+        }
       }
     }
   });
