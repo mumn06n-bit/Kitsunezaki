@@ -87,7 +87,7 @@ export default function GraphChart({
     const visibleCount = isNarrow ? sp : pc;
     // 最初に表示する範囲：日モードは最新のデータがある時刻まで、月・年モードは最後の点まで。それより前は左へスクロールして見る
     const lastDataIndex = graphData.findLastIndex((d) => d.value !== null);
-    // 値が1つも無いときはグラフ上にメッセージを出す（日モードの時だけ）
+    // 値が1つも無いときはグラフの上にエラーカードを重ねる（日・月・年すべて）
     const hasNoData = lastDataIndex === -1;
     const initialEndIndex =
         graphMode === "日" ? Math.max(lastDataIndex, visibleCount - 1) : xData.length - 1;
@@ -201,38 +201,40 @@ export default function GraphChart({
                 moveOnMouseWheel: false,
             },
         ],
-        graphic: hasNoData && graphMode === "日" ? [
-            {
-                type: "text",
-                left: "center",
-                top: "44%",
-                silent: true,
-                style: {
-                    text: "データがありません",
-                    fill: "#383838",
-                    fontSize: 14,
-                },
-            },
-        ] : [],
     }), [graphData, xData, graphMode, xUnit, unit, targetValue, initialStartIndex, initialEndIndex, hasNoData]);
 
     return (
         <div className="graph-chart">
             {error ? (
-                <p className="graph-message">データを取得できませんでした...</p>
+                // 取得エラー：データ画面と同じエラーカード
+                <div className="graph-error-overlay">
+                    <div className="error-message-card">
+                        <p>データを取得できませんでした</p>
+                    </div>
+                </div>
             ) : isLoading ? (
                 <div className="graph-message">
                     <div className="graph-spinner" />
                     <p>データを取得中...</p>
                 </div>
             ) : (
-                <ReactECharts
-                    key={graphMode}
-                    option={option}
-                    notMerge
-                    onEvents={onEvents}
-                    style={{ width: "100%", height: "100%" }}
-                />
+                <>
+                    <ReactECharts
+                        key={graphMode}
+                        option={option}
+                        notMerge
+                        onEvents={onEvents}
+                        style={{ width: "100%", height: "100%" }}
+                    />
+                    {/* データなし：グラフの上にエラーカードを重ねる */}
+                    {hasNoData && (
+                        <div className="graph-error-overlay">
+                            <div className="error-message-card">
+                                <p>データがありません。</p>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

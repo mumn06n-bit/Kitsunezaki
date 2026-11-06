@@ -18,6 +18,8 @@ type SensorData = {
   oxygen3: number | null;
 };
 
+
+
 // センサーの数値項目を表す型
 type SensorField = Exclude<keyof SensorData, "datetime">;
 
@@ -83,6 +85,7 @@ export default function CompareChart({
     Record<number, SensorData[]>
   >({});
   const [isLoading, setIsLoading] = useState(true);
+  
 
   // センサーごとのデータフィールドを取得
   const getSensorField = (
@@ -177,12 +180,14 @@ export default function CompareChart({
         : graphPeriod === "year"
           ? Array.from({ length: 12 }, (_, i) => `${i + 1}`)
           : Array.from({ length: 48 }, (_, i) => {
-              const hour = Math.floor(i / 2);
-              const minute = i % 2 === 0 ? "00" : "30";
-              return `${String(hour).padStart(2, "0")}:${minute}`;
-            }),
+            const hour = Math.floor(i / 2);
+            const minute = i % 2 === 0 ? "00" : "30";
+            return `${String(hour).padStart(2, "0")}:${minute}`;
+          }),
     [graphPeriod]
   );
+
+  
 
   // グラフのデータを作成
   const series: NonNullable<EChartsOption["series"]> = useMemo(() => {
@@ -242,6 +247,21 @@ export default function CompareChart({
     });
   }, [graphPeriod, periods, sensorData, labels, sensorType]);
 
+  
+
+  // 実際にグラフへ描画できるデータがあるか判定
+// 実際にグラフへ描画できるデータがあるか判定
+const hasNoData =
+  periods.length > 0 &&
+  (series as unknown as Array<{ data?: unknown[] }>).every(
+    (item) =>
+      !(item.data ?? []).some(
+        (value) =>
+          typeof value === "number" &&
+          Number.isFinite(value)
+      )
+  );
+
   const xUnit =
     graphPeriod === "month"
       ? "日"
@@ -254,34 +274,49 @@ export default function CompareChart({
 
   // 日は12点、月は10点、年は6点ずつ表示（PCでは全体表示）
   const visibleCount =
-  graphPeriod === "day"
-    ? 6
-    : graphPeriod === "month"
-      ? 10
-      : graphPeriod === "year"
-        ? 6
-        : labels.length;
+    graphPeriod === "day"
+      ? 6
+      : graphPeriod === "month"
+        ? 10
+        : graphPeriod === "year"
+          ? 6
+          : labels.length;
 
-const initialEndIndex = Math.min(
-  visibleCount - 1,
-  labels.length - 1
-);
+  const initialEndIndex = Math.min(
+    visibleCount - 1,
+    labels.length - 1
+  );
 
-const initialStartIndex = 0;
+  const initialStartIndex = 0;
 
-const dataZoom = [
-  {
-    type: "inside" as const,
-    xAxisIndex: 0,
-    startValue: initialStartIndex,
-    endValue: initialEndIndex,
-    zoomLock: true,
-    moveOnMouseMove: true,
-    moveOnMouseWheel: false,
-  },
-];
+  const dataZoom = [
+    {
+      type: "inside" as const,
+      xAxisIndex: 0,
+      startValue: initialStartIndex,
+      endValue: initialEndIndex,
+      zoomLock: true,
+      moveOnMouseMove: true,
+      moveOnMouseWheel: false,
+    },
+  ];
 
   const option: EChartsOption = {
+    graphic: hasNoData
+  ? [
+      {
+        type: "text",
+        left: "center",
+        top: "44%",
+        silent: true,
+        style: {
+          text: "データがありません",
+          fill: "#383838",
+          fontSize: 14,
+        },
+      },
+    ]
+  : [],
     grid: {
       left: 45,
       right: 40,
@@ -337,20 +372,37 @@ yAxis: {
   };
 
   return (
-    <div className="compare-chart-scroll">
+  <div className="compare-chart-scroll">
+    {isLoading ? (
+      <div className="compare-chart-message">
+        <div className="compare-spinner" />
+        データを取得中...
+      </div>
+    ) : periods.length === 0 ? (
+      <div className="compare-chart-message">
+        比較する期間を選択してください
+      </div>
+    ) : (
       <div className="compare-chart">
-        {isLoading ? null : (
-          <ReactECharts
-            key={graphPeriod}
-            option={option}
-            notMerge
-            style={{
-              width: "100%",
-              height: "100%",
-            }}
-          />
+        <ReactECharts
+          key={graphPeriod}
+          option={option}
+          notMerge
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+        />
+
+        {hasNoData && (
+          <div className="compare-error-overlay">
+            <div className="compare-error-card">
+              <p>データがありません。</p>
+            </div>
+          </div>
         )}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }
