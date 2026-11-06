@@ -348,7 +348,7 @@ yAxis: {
     sensorType === "salt"
       ? 35
       : sensorType === "oxygen"
-        ? 15
+        ? 8
         : undefined,
   interval:
     sensorType === "salt" || sensorType === "oxygen"
