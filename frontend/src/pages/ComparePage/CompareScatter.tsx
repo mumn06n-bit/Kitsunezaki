@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import "./CompareScatter.css";
@@ -19,9 +18,35 @@ type SensorData = {
     oxygen3: number | null;
 };
 
+// センサーの数値項目を表す型
+type SensorField = Exclude<keyof SensorData, "datetime">;
+
 // 溶存酸素の有効範囲を判定する
 const isValidOxygen = (value: number | null): value is number =>
     value !== null && value >= 0 && value <= 15;
+
+type ScatterPoint = [number, number];
+
+type ScatterSeries = {
+    type: "scatter";
+    name: string;
+    data: ScatterPoint[];
+    symbolSize: number;
+    itemStyle: {
+        color: string;
+    };
+};
+
+type CorrelationAxes = {
+    x: SensorKey;
+    y: SensorKey;
+};
+
+type AxisRange = {
+    min?: number;
+    max?: number;
+    interval?: number;
+};
 
 export default function CompareScatter({
     settings,
@@ -29,6 +54,9 @@ export default function CompareScatter({
     const [sensorData, setSensorData] = useState<
         Record<number, SensorData[]>
     >({});
+
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
 
     // センサーの並び順
     const sensorPriority: SensorKey[] = [
@@ -44,8 +72,16 @@ export default function CompareScatter({
 
         if (settings.periods.length === 0) {
             setSensorData({});
-            return;
+            setHasError(false);
+            setIsLoading(false);
+
+            return () => {
+                cancelled = true;
+            };
         }
+
+        setIsLoading(true);
+        setHasError(false);
 
         const fetchData = async () => {
             const results: Record<number, SensorData[]> = {};
@@ -57,9 +93,15 @@ export default function CompareScatter({
 
                         // 日：その日のデータを取得
                         if (settings.graphPeriod === "day") {
-                            date = `${period.year}-${String(period.month).padStart(2, "0")}-${String(period.day).padStart(2, "0")}`;
+                            date = `${period.year}-${String(
+                                period.month
+                            ).padStart(2, "0")}-${String(
+                                period.day
+                            ).padStart(2, "0")}`;
                         } else if (settings.graphPeriod === "month") {
-                            date = `${period.year}-${String(period.month).padStart(2, "0")}`;
+                            date = `${period.year}-${String(
+                                period.month
+                            ).padStart(2, "0")}`;
                         } else if (settings.graphPeriod === "year") {
                             date = String(period.year);
                         }
@@ -69,7 +111,9 @@ export default function CompareScatter({
                         );
 
                         if (!response.ok) {
-                            throw new Error(`API error: ${response.status}`);
+                            throw new Error(
+                                `API error: ${response.status}`
+                            );
                         }
 
                         const data: SensorData[] = await response.json();
@@ -79,6 +123,7 @@ export default function CompareScatter({
 
                 if (!cancelled) {
                     setSensorData(results);
+                    setHasError(false);
                 }
             } catch (error) {
                 console.error(
@@ -88,6 +133,11 @@ export default function CompareScatter({
 
                 if (!cancelled) {
                     setSensorData({});
+                    setHasError(true);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
                 }
             }
         };
@@ -100,7 +150,7 @@ export default function CompareScatter({
     }, [settings.graphPeriod, settings.periods]);
 
     // 相関図のX軸・Y軸に使用するセンサーを取得
-    const getCorrelationAxes = () => {
+    const getCorrelationAxes = (): CorrelationAxes | null => {
         if (!settings.correlationMode) {
             return null;
         }
@@ -136,56 +186,83 @@ export default function CompareScatter({
     };
 
     // センサー名からAPIデータのフィールド名を取得
+    // DOセンサーは期間ごとの選択内容を使用
     const getSensorField = (
-        sensor: SensorKey
-    ): keyof Omit<SensorData, "datetime"> => {
+        sensor: SensorKey,
+        period: CompareSettings["periods"][number]
+    ): SensorField => {
         switch (sensor) {
             case "air":
                 return "outsideTemp";
+
             case "water":
                 return "waterTemp";
+
             case "salt":
                 return "salinity";
+
             case "oxygen":
-                return "oxygen1";
+                return period.oxygenSensor ?? "oxygen1";
         }
+    };
+
+    // DOセンサーの表示名
+    const DO_NAMES: Record<
+        "oxygen1" | "oxygen2" | "oxygen3",
+        string
+    > = {
+        oxygen1: "DO1",
+        oxygen2: "DO2",
+        oxygen3: "DO3",
     };
 
     // 選択した期間の表示名
     const getPeriodText = (
         period: CompareSettings["periods"][number]
     ) => {
+        let dateText = "";
+
         switch (settings.graphPeriod) {
             case "year":
-                return `${period.year}`;
+                dateText = `${period.year}`;
+                break;
 
             case "month":
-                return `${period.year}/${String(
+                dateText = `${period.year}/${String(
                     period.month
                 ).padStart(2, "0")}`;
+                break;
 
             case "day":
-                return `${period.year}/${String(
+                dateText = `${period.year}/${String(
                     period.month
                 ).padStart(2, "0")}/${String(
                     period.day
                 ).padStart(2, "0")}`;
-
-            default:
-                return "";
+                break;
         }
+
+        // 相関図で溶存酸素を使う場合はDO番号も表示
+        if (settings.correlationSensors.includes("oxygen")) {
+            const oxygenSensor =
+                period.oxygenSensor ?? "oxygen1";
+
+            return `${dateText}/${DO_NAMES[oxygenSensor]}`;
+        }
+
+        return dateText;
     };
 
     // 数値の平均を求める
     const getAverage = (
         values: (number | null)[],
         isOxygen = false
-    ) => {
+    ): number | null => {
         const validValues = values.filter(
             (value): value is number =>
-                isOxygen
-                    ? isValidOxygen(value)
-                    : value !== null
+                typeof value === "number" &&
+                Number.isFinite(value) &&
+                (!isOxygen || isValidOxygen(value))
         );
 
         if (validValues.length === 0) {
@@ -241,7 +318,7 @@ export default function CompareScatter({
     // 日ごとの平均データを作る
     const createDailyAverageData = (
         data: SensorData[]
-    ) => {
+    ): SensorData[] => {
         const dailyData: SensorData[] = [];
 
         for (let day = 1; day <= 31; day++) {
@@ -266,7 +343,7 @@ export default function CompareScatter({
     // 月ごとの平均データを作る
     const createMonthlyAverageData = (
         data: SensorData[]
-    ) => {
+    ): SensorData[] => {
         const monthlyData: SensorData[] = [];
 
         for (let month = 1; month <= 12; month++) {
@@ -288,42 +365,54 @@ export default function CompareScatter({
         return monthlyData;
     };
 
-    // 相関図を作成
-    const getCorrelationChartOption = () => {
-        const axes = getCorrelationAxes();
+    // 相関図に描画するデータを作成
+    const createCorrelationSeries = (
+        axes: CorrelationAxes
+    ): ScatterSeries[] => {
+        return settings.periods.map((period) => {
+            const xField = getSensorField(
+                axes.x,
+                period
+            );
 
-        if (!axes) {
-            return {};
-        }
+            const yField = getSensorField(
+                axes.y,
+                period
+            );
 
-        const xField = getSensorField(axes.x);
-        const yField = getSensorField(axes.y);
-
-        // 各期間の散布図データを作成
-        const scatterSeries = settings.periods.map((period) => {
             let periodData = sensorData[period.id] ?? [];
 
             /*
-             * 日：30分ごとのデータをそのまま使用
+             * 日：30分ごとのデータを使用
+             *
              * 月：1日ごとの平均を使用
+             *
              * 年：1か月ごとの平均を使用
              */
+
             if (settings.graphPeriod === "month") {
-                periodData = createDailyAverageData(periodData);
+                periodData =
+                    createDailyAverageData(periodData);
             } else if (settings.graphPeriod === "year") {
-                periodData = createMonthlyAverageData(periodData);
+                periodData =
+                    createMonthlyAverageData(periodData);
             }
 
-            const data = periodData
+            const data: ScatterPoint[] = periodData
                 .map((record) => {
                     const x = record[xField];
                     const y = record[yField];
 
-                    if (x === null || y === null) {
+                    if (
+                        typeof x !== "number" ||
+                        !Number.isFinite(x) ||
+                        typeof y !== "number" ||
+                        !Number.isFinite(y)
+                    ) {
                         return null;
                     }
 
-                    // 溶存酸素がX軸ならXの範囲を確認
+                    // 溶存酸素がX軸なら有効範囲を確認
                     if (
                         axes.x === "oxygen" &&
                         !isValidOxygen(x)
@@ -331,7 +420,7 @@ export default function CompareScatter({
                         return null;
                     }
 
-                    // 溶存酸素がY軸ならYの範囲を確認
+                    // 溶存酸素がY軸なら有効範囲を確認
                     if (
                         axes.y === "oxygen" &&
                         !isValidOxygen(y)
@@ -339,10 +428,10 @@ export default function CompareScatter({
                         return null;
                     }
 
-                    return [x, y] as [number, number];
+                    return [x, y] as ScatterPoint;
                 })
                 .filter(
-                    (point): point is [number, number] =>
+                    (point): point is ScatterPoint =>
                         point !== null
                 );
 
@@ -351,46 +440,68 @@ export default function CompareScatter({
                 name: getPeriodText(period),
                 data,
                 symbolSize: 10,
+
                 itemStyle: {
                     color: period.color,
                 },
             };
         });
+    };
 
-        // 溶存酸素がX軸の場合の有効な値
-        const oxygenXValues =
-            axes.x === "oxygen"
-                ? scatterSeries.flatMap((item) =>
-                    item.data.map((point) => point[0])
+    // 軸の範囲を取得
+    const getAxisRange = (
+        sensor: SensorKey,
+        series: ScatterSeries[],
+        axis: "x" | "y"
+    ): AxisRange => {
+        // 塩分濃度は25～35に固定
+        if (sensor === "salt") {
+            return {
+                min: 25,
+                max: 35,
+                interval: 1,
+            };
+        }
+
+        // 溶存酸素は実際のデータに応じて調整
+        if (sensor === "oxygen") {
+            const values = series.flatMap((item) =>
+                item.data.map((point) =>
+                    axis === "x" ? point[0] : point[1]
                 )
-                : [];
+            );
 
-        // 溶存酸素がY軸の場合の有効な値
-        const oxygenYValues =
-            axes.y === "oxygen"
-                ? scatterSeries.flatMap((item) =>
-                    item.data.map((point) => point[1])
-                )
-                : [];
+            if (values.length === 0) {
+                return {
+                    min: 0,
+                    max: 15,
+                };
+            }
 
-        // 溶存酸素のX軸範囲
-        const oxygenXMin = oxygenXValues.length > 0
-            ? Math.max(0, Math.min(...oxygenXValues) - 1)
-            : 0;
+            return {
+                min: Math.max(0, Math.min(...values) - 1),
+                max: Math.min(15, Math.max(...values) + 1),
+            };
+        }
 
-        const oxygenXMax = oxygenXValues.length > 0
-            ? Math.min(15, Math.max(...oxygenXValues) + 1)
-            : 15;
+        return {};
+    };
 
-        // 溶存酸素のY軸範囲
-        const oxygenYMin = oxygenYValues.length > 0
-            ? Math.max(0, Math.min(...oxygenYValues) - 1)
-            : 0;
+    // 軸の数値表示を設定
+    const getAxisLabelFormatter = (
+        sensor: SensorKey
+    ) => {
+        return (value: number) =>
+            sensor === "oxygen"
+                ? value.toFixed(1)
+                : String(value);
+    };
 
-        const oxygenYMax = oxygenYValues.length > 0
-            ? Math.min(15, Math.max(...oxygenYValues) + 1)
-            : 15;
-
+    // 相関図のグラフ設定
+    const getCorrelationChartOption = (
+        axes: CorrelationAxes,
+        series: ScatterSeries[]
+    ) => {
         return {
             grid: {
                 left: 60,
@@ -401,35 +512,37 @@ export default function CompareScatter({
 
             xAxis: {
                 type: "value" as const,
+                ...getAxisRange(axes.x, series, "x"),
 
-                ...(axes.x === "oxygen"
-                    ? {
-                        min: oxygenXMin,
-                        max: oxygenXMax,
-                    }
-                    : {}),
+                name: `${getSensorNameByValue(
+                    axes.x
+                )} [${getSensorUnit(axes.x)}]`,
 
-                name: `${getSensorNameByValue(axes.x)} [${getSensorUnit(axes.x)}]`,
                 nameLocation: "middle" as const,
                 nameGap: 25,
+
+                axisLabel: {
+                    formatter: getAxisLabelFormatter(axes.x),
+                },
             },
 
             yAxis: {
                 type: "value" as const,
+                ...getAxisRange(axes.y, series, "y"),
 
-                ...(axes.y === "oxygen"
-                    ? {
-                        min: oxygenYMin,
-                        max: oxygenYMax,
-                    }
-                    : {}),
+                name: `${getSensorNameByValue(
+                    axes.y
+                )} [${getSensorUnit(axes.y)}]`,
 
-                name: `${getSensorNameByValue(axes.y)} [${getSensorUnit(axes.y)}]`,
                 nameLocation: "middle" as const,
                 nameGap: 35,
+
+                axisLabel: {
+                    formatter: getAxisLabelFormatter(axes.y),
+                },
             },
 
-            series: scatterSeries,
+            series,
         };
     };
 
@@ -439,15 +552,52 @@ export default function CompareScatter({
         return null;
     }
 
+    // 実際に描画する散布図データを作成
+    const series = createCorrelationSeries(axes);
+
+    // すべての期間に描画可能なデータがないか判定
+    const hasNoData =
+        settings.periods.length > 0 &&
+        series.every((item) => item.data.length === 0);
+
     return (
         <div className="correlation-chart-area">
-            <ReactECharts
-                option={getCorrelationChartOption()}
-                style={{
-                    width: "100%",
-                    height: "450px",
-                }}
-            />
+            {isLoading ? (
+                <div className="correlation-chart-message">
+                    <div className="compare-spinner" />
+                    データを取得中...
+                </div>
+            ) : hasError ? (
+                <div className="correlation-chart-message">
+                    データを取得できませんでした
+                </div>
+            ) : settings.periods.length === 0 ? (
+                <div className="correlation-chart-message">
+                    比較する期間を選択してください
+                </div>
+            ) : (
+                <div className="correlation-chart-with-overlay">
+                    <ReactECharts
+                        option={getCorrelationChartOption(
+                            axes,
+                            series
+                        )}
+                        notMerge
+                        style={{
+                            width: "100%",
+                            height: "450px",
+                        }}
+                    />
+
+                    {hasNoData && (
+                        <div className="compare-error-overlay">
+                            <div className="compare-error-card">
+                                <p>データがありません。</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

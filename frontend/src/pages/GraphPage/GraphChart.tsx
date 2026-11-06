@@ -338,22 +338,35 @@ export default function GraphChart({
     return (
         <div className="graph-chart">
             {error ? (
-                <p className="graph-message">
-                    データを取得できませんでした...
-                </p>
+                // 取得エラー：データ画面と同じエラーカード
+                <div className="graph-error-overlay">
+                    <div className="error-message-card">
+                        <p>データを取得できませんでした</p>
+                    </div>
+                </div>
             ) : isLoading ? (
                 <div className="graph-message">
                     <div className="graph-spinner" />
                     <p>データを取得中...</p>
                 </div>
             ) : (
-                <ReactECharts
-                    key={graphMode}
-                    option={option}
-                    notMerge
-                    onEvents={onEvents}
-                    style={{ width: "100%", height: "100%" }}
-                />
+                <>
+                    <ReactECharts
+                        key={graphMode}
+                        option={option}
+                        notMerge
+                        onEvents={onEvents}
+                        style={{ width: "100%", height: "100%" }}
+                    />
+                    {/* データなし：グラフの上にエラーカードを重ねる */}
+                    {hasNoData && (
+                        <div className="graph-error-overlay">
+                            <div className="error-message-card">
+                                <p>データがありません。</p>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

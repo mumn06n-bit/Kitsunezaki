@@ -182,9 +182,7 @@ export default async function handler(
     for (const row of result.value) {
       if (!row[1]) continue;
 
-      // 全センサー共通の日時変換処理
       const key = toJstKey(row[1]);
-
       if (!key) continue;
       if (date && !key.startsWith(date)) continue;
 
@@ -210,7 +208,6 @@ export default async function handler(
         records.set(key, record);
       }
 
-      // 各センサーの数値データを取得
       for (const [field, column] of Object.entries(source.columns)) {
         record[field as ValueKey] = toNumber(row[column as number]);
       }

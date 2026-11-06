@@ -117,6 +117,7 @@ export default function CompareSettingPage() {
       year: currentYear,
       month: graphPeriod === "year" ? 1 : currentMonth,
       day: currentDay,
+       oxygenSensor: "oxygen1" as const,
     };
 
     setPeriods((prev) => [...prev, newPeriod]);
@@ -181,18 +182,17 @@ export default function CompareSettingPage() {
           break;
       }
 
-      // 溶存酸素の場合は日付とDO番号の両方で判定
-      if (!correlationMode && sensorType === "oxygen") {
-        const oxygenSensor = period.oxygenSensor ?? "oxygen1";
-        return `${dateKey}-${oxygenSensor}`;
-      }
+    // 溶存酸素を使用する場合は日付とDO番号で判定
+    if (usesOxygen) {
+      const oxygenSensor = period.oxygenSensor ?? "oxygen1";
+      return `${dateKey}-${oxygenSensor}`;
+    }
 
-      // それ以外は日付だけで判定
-      return dateKey;
-    });
+    return dateKey;
+  });
 
-    return new Set(keys).size !== keys.length;
-  };
+  return new Set(keys).size !== keys.length;
+};
 
   // 相関モードでの種類選択
   const toggleCorrelationSensor = (sensor: SensorKey) => {
@@ -209,6 +209,10 @@ export default function CompareSettingPage() {
 
     setCorrelationSensors((prev) => [...prev, sensor]);
   };
+  // DOセンサー選択欄を表示するか判定
+const showOxygenSelector = correlationMode
+  ? correlationSensors.includes("oxygen")
+  : sensorType === "oxygen";
 
   // 設定保存
   const saveSettings = () => {
