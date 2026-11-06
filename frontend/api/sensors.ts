@@ -61,6 +61,7 @@ const SOURCES: {
   },
 ];
 
+// GPS情報を緯度・経度に変換する
 function convertGPS(a: number, b: number, c: number) {
   const value = Math.round(a * 100);
 
@@ -88,17 +89,22 @@ const emptyPosition = (): SensorPosition => ({
   longitudeDMS: null,
 });
 
+// UTCの日時を日本時間に変換する
 const toJstKey = (value: string) => {
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return null;
 
   const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+
   return jst.toISOString().slice(0, 16) + ":00";
 };
 
 const toNumber = (value: string | undefined) => {
   if (value === undefined || value.trim() === "") return null;
+
   const num = Number(value);
+
   return Number.isFinite(num) ? num : null;
 };
 
@@ -111,6 +117,7 @@ const fetchWithRetry = async (url: string, retries = 1) => {
       });
     } catch (error) {
       if (attempt >= retries) throw error;
+
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
@@ -205,6 +212,7 @@ export default async function handler(
         record[field as ValueKey] = toNumber(row[column as number]);
       }
 
+      // 全センサー共通のGPS変換処理
       const a = toNumber(row[7]);
       const b = toNumber(row[8]);
       const c = toNumber(row[9]);
