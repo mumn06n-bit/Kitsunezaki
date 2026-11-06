@@ -32,8 +32,8 @@ const NO_RECORDS: SensorRecord[] = [];
 
 const MODE_CONFIG: Record<string, { kind: string; xUnit: string; pc: number; sp: number }> = {
     日: { kind: "today", xUnit: "時間", pc: 24, sp: 6 },
-    月: { kind: "all", xUnit: "日", pc: 31, sp: 7 },
-    年: { kind: "all", xUnit: "月", pc: 12, sp: 12 },
+    月: { kind: "all",   xUnit: "日",   pc: 31, sp: 7 },
+    年: { kind: "all",   xUnit: "月",   pc: 12, sp: 12 },
 };
 
 type Props = {
