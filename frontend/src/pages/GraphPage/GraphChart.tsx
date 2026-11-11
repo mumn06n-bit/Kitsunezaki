@@ -32,7 +32,7 @@ const NO_RECORDS: SensorRecord[] = [];
 
 const MODE_CONFIG: Record<string, { kind: string; xUnit: string; pc: number; sp: number }> = {
     日: { kind: "today", xUnit: "時間", pc: 24, sp: 6 },
-    月: { kind: "all", xUnit: "日", pc: 31, sp: 7 },
+    月: { kind: "all", xUnit: "日", pc: 31, sp: 9 },
     年: { kind: "all", xUnit: "月", pc: 12, sp: 12 },
 };
 
@@ -129,13 +129,14 @@ export default function GraphChart({
     const hasNoData = lastDataIndex === -1;
 
     // 最初に表示する範囲
-    // 日モードは最新のデータがある時刻まで
-    // 月・年モードは最後の点まで
+    // 最新の有効なデータが右端に来るようにする
+    // データがない場合は横軸の最後の項目を使用
     const initialEndIndex =
-        graphMode === "日"
-            ? Math.max(lastDataIndex, visibleCount - 1)
+        lastDataIndex >= 0
+            ? lastDataIndex
             : xData.length - 1;
 
+    // 最新データから表示項目数分だけ左側を表示
     const initialStartIndex = Math.max(
         0,
         initialEndIndex - (visibleCount - 1)
@@ -187,8 +188,8 @@ export default function GraphChart({
 
     const option = useMemo(() => ({
         grid: {
-            left: 45,
-            right: 40,
+            left: 30,
+            right: 30,
             top: 40,
             bottom: graphMode === "日" ? 30 : 45,
         },
@@ -196,9 +197,6 @@ export default function GraphChart({
         xAxis: {
             type: "category",
             data: xData,
-            name: `[${xUnit}]`,
-            nameLocation: "end",
-            nameGap: 10,
             axisLabel: {
                 formatter: makeXAxisFormatter(
                     xData,
@@ -305,21 +303,39 @@ export default function GraphChart({
             },
         ],
 
-        graphic: hasNoData && graphMode === "日"
-            ? [
-                {
-                    type: "text",
-                    left: "center",
-                    top: "44%",
-                    silent: true,
-                    style: {
-                        text: "データがありません",
-                        fill: "#383838",
-                        fontSize: 14,
-                    },
+        graphic: [
+            // 横軸の一番右に単位を表示
+            {
+                type: "text",
+                right: 5,
+                bottom: 15,
+                silent: true,
+                style: {
+                    text: `[${xUnit}]`,
+                    fill: "#666",
+                    fontSize: 12,
+                    textAlign: "right",
+                    textVerticalAlign: "middle",
                 },
-            ]
-            : [],
+            },
+
+            // データがない場合のメッセージ
+            ...(hasNoData && graphMode === "日"
+                ? [
+                    {
+                        type: "text",
+                        left: "center",
+                        top: "44%",
+                        silent: true,
+                        style: {
+                            text: "データがありません",
+                            fill: "#383838",
+                            fontSize: 14,
+                        },
+                    },
+                ]
+                : []),
+        ],
     }), [
         displayGraphData,
         xData,

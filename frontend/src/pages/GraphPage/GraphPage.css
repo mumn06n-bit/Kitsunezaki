@@ -76,22 +76,9 @@
     flex: 1;
 
     margin-top: 5px;
-    padding: 10px;
+    padding: 0px;
 
     background: var(--white);
     overflow-x: auto;
 
-}
-
-/* API復旧したら消す */
-
-/* グラフエリア */
-.graph-area {
-    flex: 1;
-    margin-top: 5px;
-    padding: 10px;
-    background: var(--white);
-    overflow-x: auto;
-
-    position: relative;
 }

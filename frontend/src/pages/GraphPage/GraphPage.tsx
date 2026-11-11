@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import GraphChart from "./GraphChart";
@@ -15,8 +14,12 @@ const GRAPH_TYPES: Record<string, { unit: string; target: { key: string; default
 const GRAPH_MODES = ["日", "月", "年"];
 
 export default function GraphPage() {
-  const [graphType, setGraphType] = useState("水温");
-  const [graphMode, setGraphMode] = useState("月");
+  const [graphType, setGraphType] = useState(
+    () => localStorage.getItem("graphType") ?? "水温"
+  );
+  const [graphMode, setGraphMode] = useState(
+    () => localStorage.getItem("graphMode") ?? "月"
+  );
 
   const { unit, target } = GRAPH_TYPES[graphType];
   const targetValue = target
@@ -25,6 +28,18 @@ export default function GraphPage() {
 
   // 今日の日付を取得
   const today = new Date();
+
+  // グラフの種類を変更したら保存する
+  const handleGraphTypeChange = (type: string) => {
+    setGraphType(type);
+    localStorage.setItem("graphType", type);
+  };
+
+  // 表示期間を変更したら保存する
+  const handleGraphModeChange = (mode: string) => {
+    setGraphMode(mode);
+    localStorage.setItem("graphMode", mode);
+  };
 
   return (
     <PageLayout title="グラフ">
@@ -35,8 +50,7 @@ export default function GraphPage() {
           <select
             className="graph-select-button"
             value={graphType}
-            onChange={(e) => setGraphType(e.target.value)}
-          >
+            onChange={(e) => handleGraphTypeChange(e.target.value)}          >
             {Object.keys(GRAPH_TYPES).map((type) => (
               <option key={type}>{type}</option>
             ))}
@@ -49,7 +63,7 @@ export default function GraphPage() {
             <button
               key={mode}
               className={`graph-range-button ${graphMode === mode ? "active" : ""}`}
-              onClick={() => setGraphMode(mode)}
+              onClick={() => handleGraphModeChange(mode)}
             >
               {mode}
             </button>
