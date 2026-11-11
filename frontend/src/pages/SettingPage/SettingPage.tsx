@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import PageLayout from "@/components/PageLayout";
 import "./SettingPage.css";
 
 export default function SettingPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
   /*現在選択されている値を保存*/
   const [doSensor, setDoSensor] = useState("DO01");
@@ -16,6 +19,7 @@ export default function SettingPage() {
     const savedTemperature = localStorage.getItem("temperature");
     const savedSalinity = localStorage.getItem("salinity");
     const savedOxygen = localStorage.getItem("oxygen");
+    //const selectedSensor = location.state?.selectedSensor;
     if (savedDosensor) {
       setDoSensor(savedDosensor);
     }
@@ -27,6 +31,16 @@ export default function SettingPage() {
     }
     if (savedOxygen) {
       setOxygen(savedOxygen);
+    }
+    // 地図から戻ってきた場合
+    if (location.state?.selectedSensor) {
+      setDoSensor(location.state.selectedSensor);
+
+      // 選択したセンサを保存
+      localStorage.setItem(
+        "doSensor",
+        location.state.selectedSensor
+      );
     }
   }, []);
 
@@ -46,14 +60,30 @@ export default function SettingPage() {
         {/* DOセンサ */}
         <div className="setting-row">
           <label>DOセンサ</label>
-          <select
-            value={doSensor}
-            onChange={(e) => setDoSensor(e.target.value)}
-          >
-            <option>DO01</option>
-            <option>DO02</option>
-            <option>DO03</option>
-          </select>
+
+          <div className="do-sensor-setting">
+            <select
+              value={doSensor}
+              onChange={(e) => setDoSensor(e.target.value)}
+            >
+              <option>DO01</option>
+              <option>DO02</option>
+              <option>DO03</option>
+            </select>
+
+            <button
+              className="map-select-button"
+              onClick={() =>
+                navigate("/sensor-map", {
+                  state: {
+                    selectedSensor: doSensor,
+                  },
+                })
+              }
+            >
+              地図選択
+            </button>
+          </div>
         </div>
 
         {/* ★ここに横線を追加 */}
@@ -89,7 +119,7 @@ export default function SettingPage() {
             value={salinity}
             onChange={(e) => setSalinity(e.target.value)}
           >
-            {Array.from({ length: 11 }, (_, i) => {
+            {Array.from({ length: 16 }, (_, i) => {
               const value = 25 + i;
               return (
                 <option key={value} value={value}>
@@ -109,9 +139,9 @@ export default function SettingPage() {
           >
 
 
-            {Array.from({ length: 21 }, (_, i) => {
-              // 0.2刻みで 3.5mg/Lから7.5mg/Lまでの値を生成(小数点第一位まで表示)
-              const value = (3.5 + i * 0.2).toFixed(1);
+            {Array.from({ length: 31 }, (_, i) => {
+              // 0.1刻みで 4.0mg/Lから7.0mg/Lまでの値を生成(小数点第一位まで表示)
+              const value = (4.0 + i * 0.1).toFixed(1);
               return (
                 <option key={value} value={value}>
                   {value}mg/L
