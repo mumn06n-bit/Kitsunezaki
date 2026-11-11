@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import GraphChart from "./GraphChart";
@@ -6,10 +5,10 @@ import "./GraphPage.css";
 
 // データ種類ごとの単位と目標値
 const GRAPH_TYPES: Record<string, { unit: string; target: { key: string; default: number } | null }> = {
-  気温: { unit: "℃", target: null },
-  水温: { unit: "℃", target: { key: "temperature", default: 20 } },
-  塩分濃度: { unit: "‰", target: { key: "salinity", default: 30 } },
-  溶存酸素: { unit: "mg/L", target: { key: "oxygen", default: 3.5 } },
+  気温:     { unit: "℃",    target: null },
+  水温:     { unit: "℃",    target: { key: "temperature", default: 20 } },
+  塩分濃度: { unit: "‰",    target: { key: "salinity",    default: 30 } },
+  溶存酸素: { unit: "mg/L", target: { key: "oxygen",      default: 3.5 } },
 };
 
 const GRAPH_MODES = ["日", "月", "年"];
@@ -19,12 +18,7 @@ export default function GraphPage() {
   const [graphMode, setGraphMode] = useState("月");
 
   const { unit, target } = GRAPH_TYPES[graphType];
-  const targetValue = target
-    ? Number(localStorage.getItem(target.key) ?? target.default)
-    : null;
-
-  // 今日の日付を取得
-  const today = new Date();
+  const targetValue = target ? Number(localStorage.getItem(target.key) ?? target.default) : null;
 
   return (
     <PageLayout title="グラフ">
@@ -58,12 +52,7 @@ export default function GraphPage() {
       </section>
 
       <section className="graph-area">
-        <GraphChart
-          graphType={graphType}
-          graphMode={graphMode}
-          unit={unit}
-          targetValue={targetValue}
-        />
+        <GraphChart graphType={graphType} graphMode={graphMode} unit={unit} targetValue={targetValue} />
       </section>
     </PageLayout>
   );
