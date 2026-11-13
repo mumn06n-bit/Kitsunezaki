@@ -1,31 +1,50 @@
 
 import { useState, useEffect, useMemo } from "react";
-import { fetchSensorData, makeGraphPoints, type SensorRecord } from "@/services/sensorData";
+import {
+    fetchSensorData,
+    makeGraphPoints,
+    type SensorRecord,
+} from "@/services/sensorData";
 import ReactECharts from "echarts-for-react";
 import type { ECharts } from "echarts";
 import "./GraphChart.css";
 
-// 横軸ラベル（2段）を作る関数を返す
+// 横軸ラベルを作る関数
+// 日モード：時刻
 // 月モード：上段に月、下段に日
 // 年モード：上段に年、下段に月
-// 上段は「月（年）の最初」と「表示範囲で一番左のラベル」にだけ出す。
-// スクロールしても左端に必ず月（年）が表示される。
 const makeXAxisFormatter = (
     xData: string[],
     graphMode: string,
     startIndex: number
 ) => {
-    if (graphMode === "日") return (value: string) => value;
-
-    // 表示範囲で一番左のラベル
     const firstShown = xData[startIndex];
 
     return (value: string) => {
+        if (graphMode === "日") {
+            const time = value.slice(11, 16);
+
+            // 30分のデータはラベルを表示しない
+            return time.endsWith(":30") ? "" : time;
+        }
+
         const month = Number(value.slice(5, 7));
 
         if (graphMode === "月") {
             const day = Number(value.slice(8, 10));
-            const top = day === 1 || value === firstShown ? `${month}月` : " ";
+            const year = value.slice(0, 4);
+
+            const isFirstDay = day === 1 || value === firstShown;
+            const isNewYear =
+                month === 1 ||
+                value === firstShown;
+
+            const top = isFirstDay
+                ? isNewYear
+                    ? `${month}月`
+                    : `${month}月`
+                : " ";
+
             return `${top}\n${day}`;
         }
 
@@ -38,13 +57,40 @@ const makeXAxisFormatter = (
     };
 };
 
+// 日モード：日付用の横軸ラベル
+// 表示範囲の先頭と、日付が変わる位置にだけ表示する
+const makeDateFormatter = (
+    xData: string[],
+    startIndex: number
+) => {
+    const firstShown = xData[startIndex];
+
+    return (value: string) => {
+        const date = value.slice(0, 10);
+        const index = xData.indexOf(value);
+
+        const previousDate =
+            index > 0
+                ? xData[index - 1].slice(0, 10)
+                : "";
+
+        if (value === firstShown || date !== previousDate) {
+            const [, month, day] = date.split("-");
+
+            return `${Number(month)}/${Number(day)}`;
+        }
+
+        return "";
+    };
+};
+
 const NO_RECORDS: SensorRecord[] = [];
 
 const MODE_CONFIG: Record<
     string,
     { kind: string; xUnit: string; pc: number; sp: number }
 > = {
-    日: { kind: "today", xUnit: "時間", pc: 24, sp: 6 },
+    日: { kind: "all", xUnit: "時", pc: 24, sp: 9 },
     月: { kind: "all", xUnit: "日", pc: 31, sp: 9 },
     年: { kind: "all", xUnit: "月", pc: 12, sp: 12 },
 };
@@ -78,15 +124,11 @@ export default function GraphChart({
     // 溶存酸素の3種類を共通判定
     const isOxygenGraph = graphType.startsWith("溶存酸素");
 
+    // データ取得
     useEffect(() => {
         let ignore = false;
 
-        const request =
-            kind === "today"
-                ? fetchSensorData(currentDate)
-                : fetchSensorData();
-
-        request
+        fetchSensorData()
             .then((data) => {
                 if (!ignore) {
                     setFetched({ kind, records: data });
@@ -95,18 +137,22 @@ export default function GraphChart({
             })
             .catch((e) => {
                 console.error("グラフ用データの取得に失敗しました:", e);
-                if (!ignore) setErrorKind(kind);
+
+                if (!ignore) {
+                    setErrorKind(kind);
+                }
             });
 
         return () => {
             ignore = true;
         };
-    }, [kind, currentDate]);
+    }, [kind]);
 
     const error = errorKind === kind;
     const isLoading = fetched.kind !== kind;
     const records = isLoading ? NO_RECORDS : fetched.records;
 
+    // グラフ用データを作成
     const graphData = useMemo(
         () => makeGraphPoints(records, graphType, graphMode, currentDate),
         [records, graphType, graphMode, currentDate]
@@ -144,20 +190,58 @@ export default function GraphChart({
         (d) => d.value !== null
     );
 
-    // 値が1つも無いとき
+    // 値が1つもない場合
     const hasNoData = lastDataIndex === -1;
 
-    // 最初に表示する範囲
+    // 最初に表示する範囲の右端
     const initialEndIndex =
         lastDataIndex >= 0
             ? lastDataIndex
             : xData.length - 1;
 
-    // 最新データから表示項目数分だけ左側を表示
+    // 最初に表示する範囲の左端
     const initialStartIndex = Math.max(
         0,
         initialEndIndex - (visibleCount - 1)
     );
+
+    // 現在表示している範囲
+    const [rangeStart, setRangeStart] = useState(initialStartIndex);
+    const [rangeEnd, setRangeEnd] = useState(initialEndIndex);
+
+    // データや表示モードが変わったら初期範囲に戻す
+    useEffect(() => {
+        setRangeStart(initialStartIndex);
+        setRangeEnd(initialEndIndex);
+    }, [initialStartIndex, initialEndIndex, graphMode]);
+
+    // 24時間分のデータ件数（30分刻み）
+    const MOVE_COUNT = 48;
+
+    // 移動できる最後の左端位置
+    const maxStartIndex = Math.max(
+        0,
+        lastDataIndex - (visibleCount - 1)
+    );
+
+    // 前後24時間へ移動
+    const moveRange = (direction: -1 | 1) => {
+        const nextStart = Math.max(
+            0,
+            Math.min(
+                maxStartIndex,
+                rangeStart + MOVE_COUNT * direction
+            )
+        );
+
+        const nextEnd = Math.min(
+            lastDataIndex,
+            nextStart + visibleCount - 1
+        );
+
+        setRangeStart(nextStart);
+        setRangeEnd(nextEnd);
+    };
 
     // 有効な溶存酸素データだけを取り出す
     const oxygenValues = displayGraphData
@@ -168,8 +252,6 @@ export default function GraphChart({
         );
 
     // 溶存酸素の縦軸を自動計算
-    // 最小値 - 1、最大値 + 1
-    // ただし0～15の範囲に収める
     const oxygenMin =
         oxygenValues.length > 0
             ? Math.max(0, Math.min(...oxygenValues) - 1)
@@ -180,16 +262,53 @@ export default function GraphChart({
             ? Math.min(15, Math.max(...oxygenValues) + 1)
             : 15;
 
-    // スクロールしたら、表示範囲の左端に合わせて
-    // 横軸ラベルの上段（月・年）を付け直す
+    // スクロール時の処理
     const onEvents = useMemo(
         () => ({
             dataZoom: (_: unknown, chart: ECharts) => {
-                if (graphMode === "日") return;
-
                 const [dataZoom] = chart.getOption().dataZoom as {
                     startValue: number;
+                    endValue: number;
                 }[];
+
+                const startIndex = Number(dataZoom.startValue);
+                const endIndex = Number(dataZoom.endValue);
+
+                if (
+                    Number.isFinite(startIndex) &&
+                    Number.isFinite(endIndex)
+                ) {
+                    setRangeStart(startIndex);
+                    setRangeEnd(endIndex);
+                }
+
+                if (graphMode === "日") {
+                    chart.setOption({
+                        xAxis: [
+                            {
+                                // xAxis[0]：日付
+                                axisLabel: {
+                                    formatter: makeDateFormatter(
+                                        xData,
+                                        startIndex
+                                    ),
+                                },
+                            },
+                            {
+                                // xAxis[1]：時間
+                                axisLabel: {
+                                    formatter: makeXAxisFormatter(
+                                        xData,
+                                        graphMode,
+                                        startIndex
+                                    ),
+                                },
+                            },
+                        ],
+                    });
+
+                    return;
+                }
 
                 chart.setOption({
                     xAxis: {
@@ -197,7 +316,7 @@ export default function GraphChart({
                             formatter: makeXAxisFormatter(
                                 xData,
                                 graphMode,
-                                dataZoom.startValue
+                                startIndex
                             ),
                         },
                     },
@@ -207,27 +326,75 @@ export default function GraphChart({
         [xData, graphMode]
     );
 
+    // グラフ設定
     const option = useMemo(
         () => ({
             grid: {
                 left: 30,
                 right: 30,
                 top: 40,
-                bottom: graphMode === "日" ? 30 : 45,
+                bottom: 20,
             },
 
-            xAxis: {
-                type: "category",
-                data: xData,
-                axisLabel: {
-                    formatter: makeXAxisFormatter(
-                        xData,
-                        graphMode,
-                        initialStartIndex
-                    ),
-                    interval: 0,
-                },
-            },
+            xAxis:
+                graphMode === "日"
+                    ? [
+                        // 日付軸：グラフ境界線のすぐ下
+                        {
+                            type: "category",
+                            data: xData,
+                            position: "bottom",
+                            axisLine: {
+                                show: true,
+                            },
+                            axisTick: {
+                                show: false,
+                            },
+                            axisLabel: {
+                                formatter: makeDateFormatter(
+                                    xData,
+                                    rangeStart
+                                ),
+                                interval: 0,
+                                margin: 8,
+                            },
+                        },
+
+                        // 時間軸：日付軸より下
+                        {
+                            type: "category",
+                            data: xData,
+                            position: "bottom",
+                            offset: 15,
+                            axisLine: {
+                                show: false,
+                            },
+                            axisTick: {
+                                show: false,
+                            },
+                            axisLabel: {
+                                formatter: makeXAxisFormatter(
+                                    xData,
+                                    graphMode,
+                                    rangeStart
+                                ),
+                                interval: 0,
+                                margin: 8,
+                            },
+                        },
+                    ]
+                    : {
+                        type: "category",
+                        data: xData,
+                        axisLabel: {
+                            formatter: makeXAxisFormatter(
+                                xData,
+                                graphMode,
+                                rangeStart
+                            ),
+                            interval: 0,
+                        },
+                    },
 
             yAxis: {
                 type: "value",
@@ -293,7 +460,8 @@ export default function GraphChart({
                             show: true,
                             position: "top",
                             distance: 10,
-                            formatter: (params: any) => `${params.value}${unit}`,
+                            formatter: (params: any) =>
+                                `${params.value}${unit}`,
                             fontSize: 14,
                             fontWeight: "bold",
                             color: "#333",
@@ -325,9 +493,12 @@ export default function GraphChart({
             dataZoom: [
                 {
                     type: "inside",
-                    xAxisIndex: 0,
-                    startValue: initialStartIndex,
-                    endValue: initialEndIndex,
+                    xAxisIndex:
+                        graphMode === "日"
+                            ? [0, 1]
+                            : 0,
+                    startValue: rangeStart,
+                    endValue: rangeEnd,
                     zoomLock: true,
                     moveOnMouseMove: true,
                     moveOnMouseWheel: false,
@@ -375,8 +546,8 @@ export default function GraphChart({
             xUnit,
             unit,
             targetValue,
-            initialStartIndex,
-            initialEndIndex,
+            rangeStart,
+            rangeEnd,
             hasNoData,
             graphType,
             isOxygenGraph,
@@ -401,19 +572,36 @@ export default function GraphChart({
                 </div>
             ) : (
                 <>
-                    <ReactECharts
-                        key={graphMode}
-                        option={option}
-                        notMerge
-                        onEvents={onEvents}
-                        style={{ width: "100%", height: "100%" }}
-                    />
-                    {/* データなし：グラフの上にエラーカードを重ねる */}
-                    {hasNoData && (
-                        <div className="graph-error-overlay">
-                            <div className="error-message-card">
-                                <p>データがありません。</p>
-                            </div>
+                    <div className="graph-chart__plot">
+                        <ReactECharts
+                            key={graphMode}
+                            option={option}
+                            notMerge
+                            onEvents={onEvents}
+                            style={{ width: "100%", height: "100%" }}
+                        />
+                    </div>
+
+                    {graphMode === "日" && (
+                        <div className="graph-chart__navigation">
+                            <button
+                                type="button"
+                                onClick={() => moveRange(-1)}
+                                disabled={hasNoData || rangeStart <= 0}
+                            >
+                                24時間前
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => moveRange(1)}
+                                disabled={
+                                    hasNoData ||
+                                    rangeStart >= maxStartIndex
+                                }
+                            >
+                                24時間後
+                            </button>
                         </div>
                     )}
                 </>
