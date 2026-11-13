@@ -10,29 +10,42 @@ import "./GraphChart.css";
 // 年モード：上段に年、下段に月
 // 上段は「月（年）の最初」と「表示範囲で一番左のラベル」にだけ出す。
 // スクロールしても左端に必ず月（年）が表示される。
-const makeXAxisFormatter = (xData: string[], graphMode: string, startIndex: number) => {
-    if (graphMode === "日") return (value: string) => value; // "00:30" など
+const makeXAxisFormatter = (
+    xData: string[],
+    graphMode: string,
+    startIndex: number
+) => {
+    if (graphMode === "日") return (value: string) => value;
 
     // 表示範囲で一番左のラベル
     const firstShown = xData[startIndex];
 
     return (value: string) => {
         const month = Number(value.slice(5, 7));
+
         if (graphMode === "月") {
             const day = Number(value.slice(8, 10));
             const top = day === 1 || value === firstShown ? `${month}月` : " ";
             return `${top}\n${day}`;
         }
-        const top = month === 1 || value === firstShown ? `${value.slice(0, 4)}年` : " ";
+
+        const top =
+            month === 1 || value === firstShown
+                ? `${value.slice(0, 4)}年`
+                : " ";
+
         return `${top}\n${month}`;
     };
 };
 
 const NO_RECORDS: SensorRecord[] = [];
 
-const MODE_CONFIG: Record<string, { kind: string; xUnit: string; pc: number; sp: number }> = {
+const MODE_CONFIG: Record<
+    string,
+    { kind: string; xUnit: string; pc: number; sp: number }
+> = {
     日: { kind: "today", xUnit: "時間", pc: 24, sp: 6 },
-    月: { kind: "all", xUnit: "日", pc: 31, sp: 7 },
+    月: { kind: "all", xUnit: "日", pc: 31, sp: 9 },
     年: { kind: "all", xUnit: "月", pc: 12, sp: 12 },
 };
 
@@ -49,7 +62,10 @@ export default function GraphChart({
     unit,
     targetValue,
 }: Props) {
-    const [fetched, setFetched] = useState<{ kind: string; records: SensorRecord[] }>({
+    const [fetched, setFetched] = useState<{
+        kind: string;
+        records: SensorRecord[];
+    }>({
         kind: "",
         records: NO_RECORDS,
     });
@@ -59,12 +75,16 @@ export default function GraphChart({
 
     const { kind, xUnit, pc, sp } = MODE_CONFIG[graphMode];
 
+    // 溶存酸素の3種類を共通判定
+    const isOxygenGraph = graphType.startsWith("溶存酸素");
+
     useEffect(() => {
         let ignore = false;
 
-        const request = kind === "today"
-            ? fetchSensorData(currentDate)
-            : fetchSensorData();
+        const request =
+            kind === "today"
+                ? fetchSensorData(currentDate)
+                : fetchSensorData();
 
         request
             .then((data) => {
@@ -94,7 +114,7 @@ export default function GraphChart({
 
     // 溶存酸素：0～15 mg/Lの範囲外を除外
     const displayGraphData = useMemo(() => {
-        if (graphType !== "溶存酸素") {
+        if (!isOxygenGraph) {
             return graphData;
         }
 
@@ -105,7 +125,7 @@ export default function GraphChart({
                     ? d.value
                     : null,
         }));
-    }, [graphData, graphType]);
+    }, [graphData, isOxygenGraph]);
 
     // 横軸データ
     const xData = useMemo(
@@ -114,7 +134,6 @@ export default function GraphChart({
     );
 
     // スマホなど画面が狭いか
-    // 日モードで30分ごとのラベルを全部出しても重ならないようにする
     const isNarrow = window.innerWidth < 600;
 
     // 1画面に表示する点の数（PC / スマホ）
@@ -125,17 +144,16 @@ export default function GraphChart({
         (d) => d.value !== null
     );
 
-    // 値が1つも無いときはグラフ上にメッセージを出す（日モードの時だけ）
+    // 値が1つも無いとき
     const hasNoData = lastDataIndex === -1;
 
     // 最初に表示する範囲
-    // 日モードは最新のデータがある時刻まで
-    // 月・年モードは最後の点まで
     const initialEndIndex =
-        graphMode === "日"
-            ? Math.max(lastDataIndex, visibleCount - 1)
+        lastDataIndex >= 0
+            ? lastDataIndex
             : xData.length - 1;
 
+    // 最新データから表示項目数分だけ左側を表示
     const initialStartIndex = Math.max(
         0,
         initialEndIndex - (visibleCount - 1)
@@ -146,194 +164,226 @@ export default function GraphChart({
         .map((d) => d.value)
         .filter(
             (value): value is number =>
-                graphType === "溶存酸素" &&
-                value !== null
+                isOxygenGraph && value !== null
         );
 
     // 溶存酸素の縦軸を自動計算
     // 最小値 - 1、最大値 + 1
     // ただし0～15の範囲に収める
-    const oxygenMin = oxygenValues.length > 0
-        ? Math.max(0, Math.min(...oxygenValues) - 1)
-        : 0;
+    const oxygenMin =
+        oxygenValues.length > 0
+            ? Math.max(0, Math.min(...oxygenValues) - 1)
+            : 0;
 
-    const oxygenMax = oxygenValues.length > 0
-        ? Math.min(15, Math.max(...oxygenValues) + 1)
-        : 15;
+    const oxygenMax =
+        oxygenValues.length > 0
+            ? Math.min(15, Math.max(...oxygenValues) + 1)
+            : 15;
 
     // スクロールしたら、表示範囲の左端に合わせて
     // 横軸ラベルの上段（月・年）を付け直す
-    const onEvents = useMemo(() => ({
-        dataZoom: (_: unknown, chart: ECharts) => {
-            if (graphMode === "日") return;
+    const onEvents = useMemo(
+        () => ({
+            dataZoom: (_: unknown, chart: ECharts) => {
+                if (graphMode === "日") return;
 
-            const [dataZoom] = chart.getOption().dataZoom as {
-                startValue: number;
-            }[];
+                const [dataZoom] = chart.getOption().dataZoom as {
+                    startValue: number;
+                }[];
 
-            chart.setOption({
-                xAxis: {
-                    axisLabel: {
-                        formatter: makeXAxisFormatter(
-                            xData,
-                            graphMode,
-                            dataZoom.startValue
-                        ),
+                chart.setOption({
+                    xAxis: {
+                        axisLabel: {
+                            formatter: makeXAxisFormatter(
+                                xData,
+                                graphMode,
+                                dataZoom.startValue
+                            ),
+                        },
                     },
+                });
+            },
+        }),
+        [xData, graphMode]
+    );
+
+    const option = useMemo(
+        () => ({
+            grid: {
+                left: 30,
+                right: 30,
+                top: 40,
+                bottom: graphMode === "日" ? 30 : 45,
+            },
+
+            xAxis: {
+                type: "category",
+                data: xData,
+                axisLabel: {
+                    formatter: makeXAxisFormatter(
+                        xData,
+                        graphMode,
+                        initialStartIndex
+                    ),
+                    interval: 0,
                 },
-            });
-        },
-    }), [xData, graphMode]);
-
-    const option = useMemo(() => ({
-        grid: {
-            left: 45,
-            right: 40,
-            top: 40,
-            bottom: graphMode === "日" ? 30 : 45,
-        },
-
-        xAxis: {
-            type: "category",
-            data: xData,
-            name: `[${xUnit}]`,
-            nameLocation: "end",
-            nameGap: 10,
-            axisLabel: {
-                formatter: makeXAxisFormatter(
-                    xData,
-                    graphMode,
-                    initialStartIndex
-                ),
-                interval: 0,
-            },
-        },
-
-        yAxis: {
-            type: "value",
-
-            min: graphType === "塩分濃度"
-                ? 25
-                : graphType === "溶存酸素"
-                    ? oxygenMin
-                    : hasNoData ? 0 : undefined,
-
-            max: graphType === "塩分濃度"
-                ? 35
-                : graphType === "溶存酸素"
-                    ? oxygenMax
-                    : hasNoData ? 30 : undefined,
-
-            interval: graphType === "塩分濃度"
-                ? 1
-                : undefined,
-
-            splitNumber: graphType === "塩分濃度"
-                ? 10
-                : graphType === "溶存酸素"
-                    ? 6
-                    : undefined,
-
-            axisLabel: {
-                formatter: (value: number) =>
-                    graphType === "溶存酸素"
-                        ? value.toFixed(1)
-                        : value,
             },
 
-            name: `[${unit}]`,
-            nameLocation: "end",
-            nameTextStyle: {
-                align: "left",
-            },
-        },
+            yAxis: {
+                type: "value",
 
-        series: [
-            {
-                type: "line",
-                smooth: true,
+                min:
+                    graphType === "塩分濃度"
+                        ? 25
+                        : isOxygenGraph
+                            ? oxygenMin
+                            : hasNoData
+                                ? 0
+                                : undefined,
 
-                // 溶存酸素は0～15の範囲内の値だけ表示
-                data: displayGraphData.map((d) => d.value),
+                max:
+                    graphType === "塩分濃度"
+                        ? 35
+                        : isOxygenGraph
+                            ? oxygenMax
+                            : hasNoData
+                                ? 30
+                                : undefined,
 
-                symbol: "circle",
-                symbolSize: 12,
-                color: "#4A90E2",
+                interval:
+                    graphType === "塩分濃度"
+                        ? 1
+                        : undefined,
 
-                emphasis: {
-                    label: {
-                        show: true,
-                        position: "top",
-                        distance: 10,
-                        formatter: (params: any) => `${params.value}${unit}`,
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        color: "#333",
-                    },
+                splitNumber:
+                    graphType === "塩分濃度"
+                        ? 10
+                        : isOxygenGraph
+                            ? 6
+                            : undefined,
+
+                axisLabel: {
+                    formatter: (value: number) =>
+                        isOxygenGraph
+                            ? value.toFixed(1)
+                            : value,
                 },
 
-                markLine: targetValue === null || hasNoData
-                    ? undefined
-                    : {
-                        silent: true,
-                        symbol: ["none", "none"],
+                name: `[${unit}]`,
+                nameLocation: "end",
+                nameTextStyle: {
+                    align: "left",
+                },
+            },
+
+            series: [
+                {
+                    type: "line",
+                    smooth: true,
+
+                    // 溶存酸素は0～15の範囲内の値だけ表示
+                    data: displayGraphData.map((d) => d.value),
+
+                    symbol: "circle",
+                    symbolSize: 12,
+                    color: "#4A90E2",
+
+                    emphasis: {
                         label: {
-                            position: "end",
-                            color: "#2ecc71",
+                            show: true,
+                            position: "top",
+                            distance: 10,
+                            formatter: (params: any) => `${params.value}${unit}`,
+                            fontSize: 14,
                             fontWeight: "bold",
-                            formatter: `${targetValue}`,
+                            color: "#333",
                         },
-                        lineStyle: {
-                            color: "#2ecc71",
-                            type: "solid",
-                            width: 2,
-                        },
-                        data: [{ yAxis: targetValue }],
                     },
-            },
-        ],
 
-        dataZoom: [
-            {
-                type: "inside",
-                xAxisIndex: 0,
-                startValue: initialStartIndex,
-                endValue: initialEndIndex,
-                zoomLock: true,
-                moveOnMouseMove: true,
-                moveOnMouseWheel: false,
-            },
-        ],
+                    markLine:
+                        targetValue === null || hasNoData
+                            ? undefined
+                            : {
+                                silent: true,
+                                symbol: ["none", "none"],
+                                label: {
+                                    position: "end",
+                                    color: "#2ecc71",
+                                    fontWeight: "bold",
+                                    formatter: `${targetValue}`,
+                                },
+                                lineStyle: {
+                                    color: "#2ecc71",
+                                    type: "solid",
+                                    width: 2,
+                                },
+                                data: [{ yAxis: targetValue }],
+                            },
+                },
+            ],
 
-        graphic: hasNoData && graphMode === "日"
-            ? [
+            dataZoom: [
+                {
+                    type: "inside",
+                    xAxisIndex: 0,
+                    startValue: initialStartIndex,
+                    endValue: initialEndIndex,
+                    zoomLock: true,
+                    moveOnMouseMove: true,
+                    moveOnMouseWheel: false,
+                },
+            ],
+
+            graphic: [
+                // 横軸の一番右に単位を表示
                 {
                     type: "text",
-                    left: "center",
-                    top: "44%",
+                    right: 5,
+                    bottom: 15,
                     silent: true,
                     style: {
-                        text: "データがありません",
-                        fill: "#383838",
-                        fontSize: 14,
+                        text: `[${xUnit}]`,
+                        fill: "#666",
+                        fontSize: 12,
+                        textAlign: "right",
+                        textVerticalAlign: "middle",
                     },
                 },
-            ]
-            : [],
-    }), [
-        displayGraphData,
-        xData,
-        graphMode,
-        xUnit,
-        unit,
-        targetValue,
-        initialStartIndex,
-        initialEndIndex,
-        hasNoData,
-        graphType,
-        oxygenMin,
-        oxygenMax,
-    ]);
+
+                // データがない場合のメッセージ
+                ...(hasNoData && graphMode === "日"
+                    ? [
+                        {
+                            type: "text",
+                            left: "center",
+                            top: "44%",
+                            silent: true,
+                            style: {
+                                text: "データがありません",
+                                fill: "#383838",
+                                fontSize: 14,
+                            },
+                        },
+                    ]
+                    : []),
+            ],
+        }),
+        [
+            displayGraphData,
+            xData,
+            graphMode,
+            xUnit,
+            unit,
+            targetValue,
+            initialStartIndex,
+            initialEndIndex,
+            hasNoData,
+            graphType,
+            isOxygenGraph,
+            oxygenMin,
+            oxygenMax,
+        ]
+    );
 
     return (
         <div className="graph-chart">

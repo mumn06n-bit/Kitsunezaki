@@ -16,7 +16,6 @@ const times = Array.from({ length: 48 }, (_, i) => {
   return `${hour}:${minute}`;
 });
 
-const SLOT_MS = 30 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // 現在時刻から最新の30分単位の時間を取得
@@ -26,6 +25,36 @@ const getLatestTime = () => {
   const minute = now.getMinutes();
   const roundedMinute = minute < 30 ? "00" : "30";
   return `${hour}:${roundedMinute}`;
+};
+
+// 日付を保存用の文字列に変換
+const formatDateForStorage = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+// 保存された日付をDate型に変換
+const parseStoredDate = (value: string | null): Date | null => {
+  if (!value) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) return null;
+
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 };
 
 // 日付の表示フォーマット
@@ -90,27 +119,57 @@ export default function DataPage() {
 
   const [doSensor, setDoSensor] = useState("DO01");
 
-  const [selectedDate, setSelectedDate] = useState<Date>(
-    location.state?.selectedDate
-      ? new Date(location.state.selectedDate)
-      : new Date()
-  );
+  // 選択日付：画面遷移時の値 → 保存値 → 今日の日付
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    if (location.state?.selectedDate) {
+      const stateDate = new Date(location.state.selectedDate);
 
-  const [time, setTime] = useState<string>(
-    location.state?.time ?? getLatestTime()
-  );
+      if (!Number.isNaN(stateDate.getTime())) {
+        return stateDate;
+      }
+    }
 
-  // 選択時刻のデータ
-  const [record, setRecord] = useState<SensorRecord | null>(null);
+    const savedDate = parseStoredDate(
+      localStorage.getItem("dataSelectedDate")
+    );
 
-  // 全期間のデータ。前日以前のデータも欠損判定に使用する
-  const [allRecords, setAllRecords] = useState<SensorRecord[]>([]);
+    return savedDate ?? new Date();
+  });
 
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
+  // 選択時刻：画面遷移時の値 → 保存値 → 現在時刻
+  const [time, setTime] = useState<string>(() => {
+    const stateTime = location.state?.time;
 
+    if (stateTime && times.includes(stateTime)) {
+      return stateTime;
+    }
+
+    const savedTime = localStorage.getItem("dataTime");
+
+    if (savedTime && times.includes(savedTime)) {
+      return savedTime;
+    }
+
+    return getLatestTime();
+  });
+
+  // 選択日付を保存
+  useEffect(() => {
+    localStorage.setItem(
+      "dataSelectedDate",
+      formatDateForStorage(selectedDate)
+    );
+  }, [selectedDate]);
+
+  // 選択時刻を保存
+  useEffect(() => {
+    localStorage.setItem("dataTime", time);
+  }, [time]);
+
+  // DOセンサーの設定を読み込む
   useEffect(() => {
     const savedDoSensor = localStorage.getItem("doSensor");
+
     if (savedDoSensor && DO_FIELD[savedDoSensor]) {
       setDoSensor(savedDoSensor);
     }
@@ -162,6 +221,15 @@ export default function DataPage() {
 
   const targetDatetime = `${dateString}T${time}:00`;
   const targetMs = new Date(targetDatetime).getTime();
+
+  // 選択時刻のデータ
+  const [record, setRecord] = useState<SensorRecord | null>(null);
+
+  // 全期間のデータ。前日以前のデータも欠損判定に使用する
+  const [allRecords, setAllRecords] = useState<SensorRecord[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     const target = allRecords.find(
@@ -229,7 +297,7 @@ export default function DataPage() {
 
   // 選択日時以前で、いずれかの項目に値がある最新の記録を取得
   const latestOverallRecord = (() => {
-    for (let i = allRecords.length - 2; i >= 0; i--) {
+    for (let i = allRecords.length - 1; i >= 0; i--) {
       const item = allRecords[i];
       const itemMs = new Date(item.datetime).getTime();
 
@@ -465,16 +533,13 @@ export default function DataPage() {
               </>
             ) : (
               <>
-
                 <p>センサデータを取得できませんでした。</p>
                 <p>通信状態を確認して、再度お試しください。</p>
-
               </>
             )}
           </div>
         </div>
       )}
-
     </PageLayout>
   );
 }
