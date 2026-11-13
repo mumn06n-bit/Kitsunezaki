@@ -209,11 +209,13 @@ export default function CompareSettingPage() {
 
     setCorrelationSensors((prev) => [...prev, sensor]);
   };
-  // DOセンサー選択欄を表示するか判定
-const showOxygenSelector = correlationMode
+
+  // 溶存酸素を使用するか判定
+const usesOxygen = correlationMode
   ? correlationSensors.includes("oxygen")
   : sensorType === "oxygen";
 
+  
   // 設定保存
   const saveSettings = () => {
     // 相関モードでの種類不足のエラーメッセージ
@@ -532,10 +534,7 @@ const showOxygenSelector = correlationMode
                 <span>日</span>
 
                 {/* 溶存酸素センサー */}
-                {(
-                  (!correlationMode && sensorType === "oxygen") ||
-                  (correlationMode && correlationSensors.includes("oxygen"))
-                ) && (
+                {usesOxygen && (
                     <div className="oxygen-select">
                       <select
                         value={
