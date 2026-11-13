@@ -116,10 +116,26 @@ export const getSensorField = (type: string): ValueField => {
   switch (type) {
     case "気温":
       return "outsideTemp";
+
     case "水温":
       return "waterTemp";
+
     case "塩分濃度":
       return "salinity";
+
+    case "溶存酸素(DO01)":
+      return "oxygen1";
+
+    case "溶存酸素(DO02)":
+      return "oxygen2";
+
+    case "溶存酸素(DO03)":
+      return "oxygen3";
+
+    // 旧データとの互換性：従来の溶存酸素はDO01として扱う
+    case "溶存酸素":
+      return "oxygen1";
+
     default:
       return DO_FIELD[localStorage.getItem("doSensor") ?? "DO01"] ?? "oxygen1";
   }
