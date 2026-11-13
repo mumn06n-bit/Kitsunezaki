@@ -17,8 +17,6 @@ type SensorData = {
     oxygen3: number | null;
 };
 
-
-
 // センサーの数値項目を表す型
 type SensorField = Exclude<keyof SensorData, "datetime">;
 
@@ -61,6 +59,7 @@ const getSensorValue = (
     return value;
 };
 
+// グラフの線の設定
 const createLineSettings = (
     period: CompareSettings["periods"][number],
     symbolSize: number
@@ -106,7 +105,9 @@ export default function CompareChart({
     const [sensorData, setSensorData] = useState<
         Record<number, SensorData[]>
     >({});
+
     const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
 
     // センサーごとのデータフィールドを取得
     const getSensorField = (
@@ -146,11 +147,16 @@ export default function CompareChart({
 
         if (periods.length === 0) {
             setSensorData({});
+            setHasError(false);
             setIsLoading(false);
-            return;
+
+            return () => {
+                cancelled = true;
+            };
         }
 
         setIsLoading(true);
+        setHasError(false);
 
         const fetchData = async () => {
             const results: Record<number, SensorData[]> = {};
@@ -159,10 +165,14 @@ export default function CompareChart({
                 await Promise.all(
                     periods.map(async (period) => {
                         const date = getDateQuery(period);
-                        const response = await fetch(`/api/sensors?date=${date}`);
+                        const response = await fetch(
+                            `/api/sensors?date=${date}`
+                        );
 
                         if (!response.ok) {
-                            throw new Error(`API error: ${response.status}`);
+                            throw new Error(
+                                `API error: ${response.status}`
+                            );
                         }
 
                         const data: SensorData[] = await response.json();
@@ -172,12 +182,14 @@ export default function CompareChart({
 
                 if (!cancelled) {
                     setSensorData(results);
+                    setHasError(false);
                 }
             } catch (error) {
                 console.error("センサーデータ取得エラー:", error);
 
                 if (!cancelled) {
                     setSensorData({});
+                    setHasError(true);
                 }
             } finally {
                 if (!cancelled) {
@@ -203,6 +215,7 @@ export default function CompareChart({
                     : Array.from({ length: 48 }, (_, i) => {
                         const hour = Math.floor(i / 2);
                         const minute = i % 2 === 0 ? "00" : "30";
+
                         return `${String(hour).padStart(2, "0")}:${minute}`;
                     }),
         [graphPeriod]
@@ -210,6 +223,7 @@ export default function CompareChart({
 
     // グラフのデータを作成
     const series: NonNullable<EChartsOption["series"]> = useMemo(() => {
+        // 月単位の比較：日ごとの平均値
         if (graphPeriod === "month") {
             return periods.map((period) => {
                 const periodData = sensorData[period.id] ?? [];
@@ -219,6 +233,7 @@ export default function CompareChart({
                     ...createLineSettings(period, 8),
                     data: labels.map((day) => {
                         const targetDay = String(day).padStart(2, "0");
+
                         const records = getRecordsByDate(
                             periodData,
                             targetDay,
@@ -231,6 +246,7 @@ export default function CompareChart({
             });
         }
 
+        // 年単位の比較：月ごとの平均値
         if (graphPeriod === "year") {
             return periods.map((period) => {
                 const periodData = sensorData[period.id] ?? [];
@@ -240,6 +256,7 @@ export default function CompareChart({
                     ...createLineSettings(period, 8),
                     data: labels.map((month) => {
                         const targetMonth = String(month).padStart(2, "0");
+
                         const records = getRecordsByDate(
                             periodData,
                             targetMonth,
@@ -252,6 +269,7 @@ export default function CompareChart({
             });
         }
 
+        // 日単位の比較：30分ごとのデータ
         return periods.map((period) => {
             const periodData = sensorData[period.id] ?? [];
             const sensorField = getSensorField(period);
@@ -269,6 +287,18 @@ export default function CompareChart({
         });
     }, [graphPeriod, periods, sensorData, labels, sensorType]);
 
+    // 実際にグラフへ描画できるデータがあるか判定
+    const hasNoData =
+        periods.length > 0 &&
+        (series as Array<{ data?: unknown[] }>).every(
+            (item) =>
+                !(item.data ?? []).some(
+                    (value) =>
+                        typeof value === "number" &&
+                        Number.isFinite(value)
+                )
+        );
+
     const xUnit =
         graphPeriod === "month"
             ? "日"
@@ -277,7 +307,8 @@ export default function CompareChart({
                 : "時間";
 
     // スマホでは表示範囲を狭くする
-    const isNarrow = window.innerWidth <= 768;
+    const isNarrow =
+        typeof window !== "undefined" && window.innerWidth <= 768;
 
     // 日は6点、月は10点、年は6点ずつ表示
     const visibleCount =
@@ -318,14 +349,17 @@ export default function CompareChart({
             : [];
 
     // 溶存酸素の縦軸を自動計算
-    const oxygenMin = oxygenValues.length > 0
-        ? Math.max(0, Math.min(...oxygenValues) - 1)
-        : 0;
+    const oxygenMin =
+        oxygenValues.length > 0
+            ? Math.max(0, Math.min(...oxygenValues) - 1)
+            : 0;
 
-    const oxygenMax = oxygenValues.length > 0
-        ? Math.min(15, Math.max(...oxygenValues) + 1)
-        : 15;
+    const oxygenMax =
+        oxygenValues.length > 0
+            ? Math.min(15, Math.max(...oxygenValues) + 1)
+            : 15;
 
+    // グラフの表示設定
     const option: EChartsOption = {
         grid: {
             left: 45,
@@ -348,25 +382,29 @@ export default function CompareChart({
         yAxis: {
             type: "value",
 
-            min: sensorType === "salt"
-                ? 25
-                : sensorType === "oxygen"
-                    ? oxygenMin
+            min:
+                sensorType === "salt"
+                    ? 25
+                    : sensorType === "oxygen"
+                        ? oxygenMin
+                        : undefined,
+
+            max:
+                sensorType === "salt"
+                    ? 35
+                    : sensorType === "oxygen"
+                        ? oxygenMax
+                        : undefined,
+
+            interval:
+                sensorType === "salt"
+                    ? 1
                     : undefined,
 
-            max: sensorType === "salt"
-                ? 35
-                : sensorType === "oxygen"
-                    ? oxygenMax
+            splitNumber:
+                sensorType === "oxygen"
+                    ? 6
                     : undefined,
-
-            interval: sensorType === "salt"
-                ? 1
-                : undefined,
-
-            splitNumber: sensorType === "oxygen"
-                ? 6
-                : undefined,
 
             axisLabel: {
                 formatter: (value: string | number) =>
@@ -385,10 +423,26 @@ export default function CompareChart({
         series,
     };
 
+    // 表示
     return (
         <div className="compare-chart-scroll">
-            <div className="compare-chart">
-                {isLoading ? null : (
+            {isLoading ? (
+                <div className="compare-chart-message">
+                    <div className="compare-spinner" />
+                    データを取得中...
+                </div>
+            ) : hasError ? (
+                <div className="compare-chart-message">
+                    データを取得できませんでした。
+                    <br />
+                    時間をおいて再度お試しください。
+                </div>
+            ) : periods.length === 0 ? (
+                <div className="compare-chart-message">
+                    比較する期間を選択してください
+                </div>
+            ) : (
+                <div className="compare-chart">
                     <ReactECharts
                         key={graphPeriod}
                         option={option}
@@ -398,243 +452,16 @@ export default function CompareChart({
                             height: "100%",
                         }}
                     />
-                )}
-            </div>
+
+                    {hasNoData && (
+                        <div className="compare-error-overlay">
+                            <div className="compare-error-card">
+                                <p>データがありません。</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
-  }, [graphPeriod, periods]);
-
-  // 横軸ラベル
-  const labels = useMemo(
-    () =>
-      graphPeriod === "month"
-        ? Array.from({ length: 31 }, (_, i) => `${i + 1}`)
-        : graphPeriod === "year"
-          ? Array.from({ length: 12 }, (_, i) => `${i + 1}`)
-          : Array.from({ length: 48 }, (_, i) => {
-            const hour = Math.floor(i / 2);
-            const minute = i % 2 === 0 ? "00" : "30";
-            return `${String(hour).padStart(2, "0")}:${minute}`;
-          }),
-    [graphPeriod]
-  );
-
-  
-
-  // グラフのデータを作成
-  const series: NonNullable<EChartsOption["series"]> = useMemo(() => {
-    if (graphPeriod === "month") {
-      return periods.map((period) => {
-        const periodData = sensorData[period.id] ?? [];
-
-        return {
-          ...createLineSettings(period, 8),
-          data: labels.map((day) => {
-            const targetDay = String(day).padStart(2, "0");
-            const records = getRecordsByDate(
-              periodData,
-              targetDay,
-              "day"
-            );
-
-            return getAverage(records, getSensorField(period));
-          }),
-        };
-      });
-    }
-
-    if (graphPeriod === "year") {
-      return periods.map((period) => {
-        const periodData = sensorData[period.id] ?? [];
-
-        return {
-          ...createLineSettings(period, 8),
-          data: labels.map((month) => {
-            const targetMonth = String(month).padStart(2, "0");
-            const records = getRecordsByDate(
-              periodData,
-              targetMonth,
-              "month"
-            );
-
-            return getAverage(records, getSensorField(period));
-          }),
-        };
-      });
-    }
-
-    return periods.map((period) => {
-      const periodData = sensorData[period.id] ?? [];
-
-      return {
-        ...createLineSettings(period, 5),
-        data: labels.map((time) => {
-          const record = getRecordByTime(periodData, time);
-
-          return record
-            ? record[getSensorField(period)]
-            : null;
-        }),
-      };
-    });
-  }, [graphPeriod, periods, sensorData, labels, sensorType]);
-
-  
-
-  // 実際にグラフへ描画できるデータがあるか判定
-// 実際にグラフへ描画できるデータがあるか判定
-const hasNoData =
-  periods.length > 0 &&
-  (series as unknown as Array<{ data?: unknown[] }>).every(
-    (item) =>
-      !(item.data ?? []).some(
-        (value) =>
-          typeof value === "number" &&
-          Number.isFinite(value)
-      )
-  );
-
-  const xUnit =
-    graphPeriod === "month"
-      ? "日"
-      : graphPeriod === "year"
-        ? "月"
-        : "時間";
-
-  // スマホでは表示範囲を狭くする
-  const isNarrow = window.innerWidth <= 768;
-
-  // 日は12点、月は10点、年は6点ずつ表示（PCでは全体表示）
-  const visibleCount =
-    graphPeriod === "day"
-      ? 6
-      : graphPeriod === "month"
-        ? 10
-        : graphPeriod === "year"
-          ? 6
-          : labels.length;
-
-  const initialEndIndex = Math.min(
-    visibleCount - 1,
-    labels.length - 1
-  );
-
-  const initialStartIndex = 0;
-
-  const dataZoom = [
-    {
-      type: "inside" as const,
-      xAxisIndex: 0,
-      startValue: initialStartIndex,
-      endValue: initialEndIndex,
-      zoomLock: true,
-      moveOnMouseMove: true,
-      moveOnMouseWheel: false,
-    },
-  ];
-
-  const option: EChartsOption = {
-    graphic: hasNoData
-  ? [
-      {
-        type: "text",
-        left: "center",
-        top: "44%",
-        silent: true,
-        style: {
-          text: "データがありません",
-          fill: "#383838",
-          fontSize: 14,
-        },
-      },
-    ]
-  : [],
-    grid: {
-      left: 45,
-      right: 40,
-      top: 35,
-      bottom: 55,
-    },
-
-    xAxis: {
-      type: "category",
-      data: labels,
-      name: `[${xUnit}]`,
-      nameLocation: "end",
-      nameGap: 15,
-      axisLabel: {
-        interval: isNarrow ? 0 : "auto",
-      },
-    },
-
-    
-yAxis: {
-  type: "value",
-  min:
-    sensorType === "salt"
-      ? 25
-      : sensorType === "oxygen"
-        ? 2
-        : undefined,
-  max:
-    sensorType === "salt"
-      ? 35
-      : sensorType === "oxygen"
-        ? 8
-        : undefined,
-  interval:
-    sensorType === "salt" || sensorType === "oxygen"
-      ? 1
-      : undefined,
-  axisLabel: {
-    formatter: (value: string | number) =>
-      sensorType === "oxygen"
-        ? Number(value).toFixed(1)
-        : String(value),
-  },
-  name: `[${unit}]`,
-  nameLocation: "end",
-  nameGap: 15,
-},
-
-
-    dataZoom,
-
-    series,
-  };
-
-  return (
-  <div className="compare-chart-scroll">
-    {isLoading ? (
-      <div className="compare-chart-message">
-        <div className="compare-spinner" />
-        データを取得中...
-      </div>
-    ) : periods.length === 0 ? (
-      <div className="compare-chart-message">
-        比較する期間を選択してください
-      </div>
-    ) : (
-      <div className="compare-chart">
-        <ReactECharts
-          key={graphPeriod}
-          option={option}
-          notMerge
-          style={{
-            width: "100%",
-            height: "100%",
-          }}
-        />
-
-        {hasNoData && (
-          <div className="compare-error-overlay">
-            <div className="compare-error-card">
-              <p>データがありません。</p>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-);
 }
