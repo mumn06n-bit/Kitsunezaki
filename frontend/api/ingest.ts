@@ -18,9 +18,13 @@ const SOURCES: {
 }[] = [
   { sensorId: "salinity", url: process.env.SALINITY_API_URL, kind: "salinity" },
   { sensorId: "do1", url: process.env.DO1_API_URL, kind: "do" },
+  { sensorId: "do2", url: process.env.DO2_API_URL, kind: "do" },
   { sensorId: "do3", url: process.env.DO3_API_URL, kind: "do" },
-  // DO2号機は形式が違うため、取り込み対応は後日
 ];
+
+// 日時は「2026-10-16T13:30:22Z」の形（UTC）の行だけを取り込む。
+// 古い形式の行や文字化けした行は、列の意味が違うため捨てる
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 type Reading = {
   sensor_id: string;
@@ -80,9 +84,9 @@ const toReading = (
   kind: SourceKind,
   row: string[]
 ): Reading | null => {
-  if (!row[1]) return null;
+  if (!row[1] || !ISO_UTC.test(row[1].trim())) return null;
 
-  const time = new Date(row[1]);
+  const time = new Date(row[1].trim());
   if (Number.isNaN(time.getTime())) return null;
 
   return {
@@ -170,9 +174,11 @@ export default async function handler(
 
         // 同じ日時が重複していたら1つにまとめる
         const readings = new Map<string, Reading>();
+        let skipped = 0;
         for (const row of rows) {
           const reading = toReading(source.sensorId, source.kind, row);
           if (reading) readings.set(reading.datetime, reading);
+          else skipped++;
         }
 
         // DBにある最新の日時を調べ、その1日前以降だけを追加対象にする
@@ -211,6 +217,7 @@ export default async function handler(
           sensor: source.sensorId,
           ok: true,
           fetched: readings.size,
+          skipped, // 日時の形式が違うなどで取り込まなかった行数
           sent: targets.length,
         };
       } catch (error) {
