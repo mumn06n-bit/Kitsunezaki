@@ -559,9 +559,12 @@ export default function GraphChart({
     return (
         <div className="graph-chart">
             {error ? (
-                <p className="graph-message">
-                    データを取得できませんでした...
-                </p>
+                // 取得エラー：データ画面と同じエラーカード
+                <div className="graph-error-overlay">
+                    <div className="error-message-card">
+                        <p>データを取得できませんでした</p>
+                    </div>
+                </div>
             ) : isLoading ? (
                 <div className="graph-message">
                     <div className="graph-spinner" />
