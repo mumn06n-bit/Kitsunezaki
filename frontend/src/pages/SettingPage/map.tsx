@@ -1,7 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -9,40 +12,40 @@ import PageLayout from "@/components/PageLayout";
 import {
   fetchLatestSensorPositions,
   type LatestSensorPositions,
-  //type PositionKey,
 } from "@/services/sensorData";
 
 import "./map.css";
 
-// 地図上のマーカー座標は変更しない
-const sensors = [
+type PositionSensorId = "DO01" | "DO02" | "DO03" | "salinity";
+
+// センサの識別情報
+// 座標はここでは保持せず、取得した位置情報を使用する
+const sensors: {
+  id: string;
+  positionKey: PositionSensorId;
+  type: "do" | "salinity";
+}[] = [
   {
     id: "DO01",
-    latitude: 38.357483,
-    longitude: 141.4206,
+    positionKey: "DO01",
     type: "do",
   },
   {
     id: "DO02",
-    latitude: 38.352,
-    longitude: 141.412,
+    positionKey: "DO02",
     type: "do",
   },
   {
     id: "DO03",
-    latitude: 38.347083,
-    longitude: 141.410017,
+    positionKey: "DO03",
     type: "do",
   },
   {
     id: "塩分",
-    latitude: 38.356,
-    longitude: 141.412,
+    positionKey: "salinity",
     type: "salinity",
   },
-] as const;
-
-type PositionSensorId = "DO01" | "DO02" | "DO03" | "salinity";
+];
 
 const sensorLabels: Record<PositionSensorId, string> = {
   DO01: "DO01",
@@ -131,6 +134,26 @@ export default function MapPage() {
       iconAnchor: [30, 18],
     });
 
+  // センサの位置情報を取得
+  const getSensorPosition = (sensorId: PositionSensorId) => {
+    const position = positionData?.positions[sensorId];
+
+    if (
+      !position ||
+      position.latitude === null ||
+      position.longitude === null ||
+      !Number.isFinite(position.latitude) ||
+      !Number.isFinite(position.longitude)
+    ) {
+      return null;
+    }
+
+    return {
+      latitude: position.latitude,
+      longitude: position.longitude,
+    };
+  };
+
   const renderPosition = (sensorId: PositionSensorId) => {
     const position = positionData?.positions[sensorId];
 
@@ -169,15 +192,17 @@ export default function MapPage() {
       <div className="map-page">
         <div className="map-area">
           <MapContainer
-            center={[sensors[0].latitude, sensors[0].longitude]}
+            center={[38.350484, 141.4206]}
             zoom={14}
-            scrollWheelZoom={false}
-            doubleClickZoom={false}
-            touchZoom={false}
-            zoomControl={false}
+            minZoom={10}
+            maxZoom={18}
+            scrollWheelZoom={true}
+            doubleClickZoom={true}
+            touchZoom={true}
+            zoomControl={true}
             maxBounds={[
-              [38.342, 141.41],
-              [38.362, 141.425],
+              [38.1, 141.0],
+              [38.6, 141.7],
             ]}
             maxBoundsViscosity={1.0}
             className="sensor-map"
@@ -187,20 +212,31 @@ export default function MapPage() {
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {sensors.map((sensor) => (
-              <Marker
-                key={sensor.id}
-                position={[sensor.latitude, sensor.longitude]}
-                icon={
-                  sensor.type === "salinity"
-                    ? createSalinityIcon()
-                    : createDoIcon(sensor.id)
-                }
-                eventHandlers={{
-                  click: () => handleSensorSelect(sensor.id),
-                }}
-              />
-            ))}
+            {sensors.map((sensor) => {
+              const position = getSensorPosition(sensor.positionKey);
+
+              // 位置情報が取得できない場合はマーカーを表示しない
+              if (!position) return null;
+
+              return (
+                <Marker
+                  key={sensor.id}
+                  position={[
+                    position.latitude,
+                    position.longitude,
+                  ]}
+                  zIndexOffset={sensor.type === "do" ? 1000 : 0}
+                  icon={
+                    sensor.type === "salinity"
+                      ? createSalinityIcon()
+                      : createDoIcon(sensor.id)
+                  }
+                  eventHandlers={{
+                    click: () => handleSensorSelect(sensor.id),
+                  }}
+                />
+              );
+            })}
           </MapContainer>
         </div>
 
