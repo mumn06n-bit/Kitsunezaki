@@ -203,3 +203,71 @@
     padding-top: 0;
     line-height: 1.7;
 }
+
+/* ===== CSVダウンロード確認ポップアップ ===== */
+
+/* 画面全体を覆う背景 */
+.download-popup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* ポップアップ本体 */
+.download-popup {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    min-height: 170px;
+    padding: 45px 25px 20px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    background: var(--white);
+    
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* 右上の閉じるボタン */
+.download-popup-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--inactive);
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* メッセージ */
+.download-popup-message {
+    margin: 15px 0 25px;
+    text-align: center;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+/* ボタンを右下に配置 */
+.download-popup-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ダウンロードボタン */
+.download-popup-confirm {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background: var(--secondary);
+    color: var(--inactive);
+    font-size: 16px;
+    cursor: pointer;
+}
