@@ -4,7 +4,7 @@ import { Icons } from "@/components/materials";
 import PageLayout from "@/components/PageLayout";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
+import { 
   fetchSensorData,
   type SensorRecord,
 } from "@/services/sensorData";
@@ -412,6 +412,14 @@ export default function DataPage() {
           >
             <Icons.RefreshCw size={24} />
           </button>
+
+          <button
+            className="download-button"
+          >
+            <Icons.ArrowDownToLine size={28} />
+          </button>
+
+          
 
           <div className="date-text-group">
             <span className="date-text">

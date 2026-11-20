@@ -205,15 +205,30 @@ export default function GraphChart({
         initialEndIndex - (visibleCount - 1)
     );
 
-    // 現在表示している範囲
-    const [rangeStart, setRangeStart] = useState(initialStartIndex);
-    const [rangeEnd, setRangeEnd] = useState(initialEndIndex);
+    // ユーザーが変更した表示範囲
+    const [range, setRange] = useState<{
+        graphMode: string;
+        initialStartIndex: number;
+        initialEndIndex: number;
+        start: number;
+        end: number;
+    } | null>(null);
 
-    // データや表示モードが変わったら初期範囲に戻す
-    useEffect(() => {
-        setRangeStart(initialStartIndex);
-        setRangeEnd(initialEndIndex);
-    }, [initialStartIndex, initialEndIndex, graphMode]);
+    // 保存した範囲が現在の表示条件と一致しているか
+    const isRangeCurrent =
+        range !== null &&
+        range.graphMode === graphMode &&
+        range.initialStartIndex === initialStartIndex &&
+        range.initialEndIndex === initialEndIndex;
+
+    // 現在表示している範囲
+    const rangeStart = isRangeCurrent
+        ? range.start
+        : initialStartIndex;
+
+    const rangeEnd = isRangeCurrent
+        ? range.end
+        : initialEndIndex;
 
     // 24時間分のデータ件数（30分刻み）
     const MOVE_COUNT = 48;
@@ -239,8 +254,13 @@ export default function GraphChart({
             nextStart + visibleCount - 1
         );
 
-        setRangeStart(nextStart);
-        setRangeEnd(nextEnd);
+        setRange({
+            graphMode,
+            initialStartIndex,
+            initialEndIndex,
+            start: nextStart,
+            end: nextEnd,
+        });
     };
 
     // 有効な溶存酸素データだけを取り出す
@@ -278,8 +298,26 @@ export default function GraphChart({
                     Number.isFinite(startIndex) &&
                     Number.isFinite(endIndex)
                 ) {
-                    setRangeStart(startIndex);
-                    setRangeEnd(endIndex);
+                    setRange((prev) => {
+                        if (
+                            prev !== null &&
+                            prev.graphMode === graphMode &&
+                            prev.initialStartIndex === initialStartIndex &&
+                            prev.initialEndIndex === initialEndIndex &&
+                            prev.start === startIndex &&
+                            prev.end === endIndex
+                        ) {
+                            return prev;
+                        }
+
+                        return {
+                            graphMode,
+                            initialStartIndex,
+                            initialEndIndex,
+                            start: startIndex,
+                            end: endIndex,
+                        };
+                    });
                 }
 
                 if (graphMode === "日") {
@@ -323,7 +361,12 @@ export default function GraphChart({
                 });
             },
         }),
-        [xData, graphMode]
+        [
+            xData,
+            graphMode,
+            initialStartIndex,
+            initialEndIndex,
+        ]
     );
 
     // グラフ設定
