@@ -29,7 +29,6 @@ const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 type Reading = {
   sensor_id: string;
   datetime: string;
-  battery: number | null;
   outside_temp: number | null;
   water_temp: number | null;
   salinity: number | null;
@@ -92,7 +91,6 @@ const toReading = (
   return {
     sensor_id: sensorId,
     datetime: time.toISOString(),
-    battery: toNumber(row[2]),
     outside_temp: toNumber(row[3]),
     water_temp: toNumber(row[4]),
     salinity: kind === "salinity" ? toNumber(row[6]) : null,
