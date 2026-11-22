@@ -4,7 +4,7 @@ import { Icons } from "@/components/materials";
 import PageLayout from "@/components/PageLayout";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
+import { 
   fetchSensorData,
   type SensorRecord,
 } from "@/services/sensorData";
@@ -118,15 +118,6 @@ export default function DataPage() {
   const navigate = useNavigate();
 
   const [doSensor, setDoSensor] = useState("DO01");
-
-  // CSVダウンロード確認ポップアップの表示状態
-  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
-
-  /* テスト中 */
-  // CSVダウンロードの処理状態
-  const [downloadLoading, setDownloadLoading] = useState(false);
-  const [downloadError, setDownloadError] = useState("");
-  /*----------*/
 
   // 選択日付：画面遷移時の値 → 保存値 → 今日の日付
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
@@ -386,59 +377,6 @@ export default function DataPage() {
     );
   };
 
-  /*テスト中*/
-
-  // Supabaseから全センサーデータを取得してCSVをダウンロード
-  const handleDownload = async () => {
-    setDownloadLoading(true);
-    setDownloadError("");
-
-    try {
-      const response = await fetch("/api/supabase-test");
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-
-        throw new Error(
-          errorData?.error ??
-          "CSVのダウンロードに失敗しました。"
-        );
-      }
-
-      // APIから返されたCSVをファイルとして取得
-      const blob = await response.blob();
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = "sensor_readings.csv";
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      // ダウンロード後にURLを解放
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 1000);
-
-      // ポップアップを閉じる
-      setShowDownloadPopup(false);
-    } catch (error) {
-      console.error("CSVダウンロードエラー:", error);
-
-      setDownloadError(
-        error instanceof Error
-          ? error.message
-          : "CSVのダウンロードに失敗しました。"
-      );
-    } finally {
-      setDownloadLoading(false);
-    }
-  };
-  /*--------*/
-
   return (
     <PageLayout title="データ">
       <section className="data-page-area">
@@ -477,15 +415,11 @@ export default function DataPage() {
 
           <button
             className="download-button"
-            onClick={() => {
-              setDownloadError("");
-              setShowDownloadPopup(true);
-            }}
           >
             <Icons.ArrowDownToLine size={28} />
           </button>
 
-
+          
 
           <div className="date-text-group">
             <span className="date-text">
@@ -611,47 +545,6 @@ export default function DataPage() {
                 <p>通信状態を確認して、再度お試しください。</p>
               </>
             )}
-          </div>
-        </div>
-      )}
-      {/* CSVダウンロード確認ポップアップ */}
-      {showDownloadPopup && (
-        <div className="download-popup-overlay">
-          <div className="download-popup">
-            {/* 閉じるボタン */}
-            <button
-              className="download-popup-close"
-              onClick={() => setShowDownloadPopup(false)}
-              aria-label="閉じる"
-            >
-              ×
-            </button>
-
-            {/* メッセージ */}
-            <p className="download-popup-message">
-              センサデータを<br />
-              ダウンロードしますか？
-            </p>
-
-
-            {/* エラーメッセージ */}
-            {downloadError && (
-              <p className="download-error-message">
-                {downloadError}
-              </p>
-            )}
-
-            {/* ダウンロードボタン */}
-            <div className="download-popup-actions">
-              <button
-                className="download-popup-confirm"
-                onClick={handleDownload}
-                disabled={downloadLoading}
-              >
-                {downloadLoading ? "ダウンロード中..." : "ダウンロード"}
-              </button>
-            </div>
-
           </div>
         </div>
       )}
