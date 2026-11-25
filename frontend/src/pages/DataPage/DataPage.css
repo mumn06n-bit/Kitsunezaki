@@ -70,6 +70,17 @@
     cursor: pointer;
 }
 
+.download-button {
+    position: absolute;
+    left: 25px;
+    bottom: 20px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--inactive);
+    cursor: pointer;
+}
+
 /* 時間選択の見た目 */
 .time-select {
     background: var(--white);

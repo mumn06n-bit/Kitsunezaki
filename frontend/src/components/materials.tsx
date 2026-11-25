@@ -5,7 +5,8 @@ import {
   ChartNoAxesCombined,//比較画面
   Settings,//設定画面
   Undo2,//戻るボタン
-  RefreshCw//更新ボタン
+  RefreshCw,//更新ボタン
+  ArrowDownToLine//ダウンロードボタン
 } from "lucide-react";
 
 export const Icons = {
@@ -15,6 +16,7 @@ export const Icons = {
   ChartNoAxesCombined,
   Settings,
   Undo2,
-  RefreshCw
+  RefreshCw,
+  ArrowDownToLine
 };
 

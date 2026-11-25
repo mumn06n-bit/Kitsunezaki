@@ -209,8 +209,7 @@ export default function CompareSettingPage() {
 
     setCorrelationSensors((prev) => [...prev, sensor]);
   };
-
-  // 溶存酸素を使用するか判定
+  // DOセンサー選択欄を表示するか判定
 const usesOxygen = correlationMode
   ? correlationSensors.includes("oxygen")
   : sensorType === "oxygen";
