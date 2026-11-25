@@ -4,6 +4,7 @@ import ReactECharts from "echarts-for-react";
 import "./CompareScatter.css";
 import { getSensorUnit } from "./compareData";
 import type { CompareSettings, SensorKey } from "./compareData";
+import { fetchSensorData } from "@/services/sensorData";
 
 type CompareScatterProps = {
   settings: CompareSettings;
@@ -68,44 +69,43 @@ export default function CompareScatter({
       setSensorData({});
       setHasError(false);
       setIsLoading(false);
-      return;
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     setIsLoading(true);
     setHasError(false);
 
     const fetchData = async () => {
-      const results: Record<number, SensorData[]> = {};
-
       try {
-        await Promise.all(
-          settings.periods.map(async (period) => {
-            let date = "";
+        // 全期間のデータを取得
+        const allData = await fetchSensorData();
 
-if (settings.graphPeriod === "day") {
-  date = `${period.year}-${String(period.month).padStart(2, "0")}-${String(period.day).padStart(2, "0")}`;
-} else if (settings.graphPeriod === "month") {
-  date = `${period.year}-${String(period.month).padStart(2, "0")}`;
-} else if (settings.graphPeriod === "year") {
-  date = String(period.year);
-}
+        const results: Record<number, SensorData[]> = {};
 
-            const response = await fetch(
-              `/api/sensors?date=${date}`
-            );
+        // 選択した期間ごとにデータを抽出
+        for (const period of settings.periods) {
+          const year = String(period.year);
+          const month = String(period.month).padStart(2, "0");
+          const day = String(period.day).padStart(2, "0");
 
-            if (!response.ok) {
-              throw new Error(
-                `API error: ${response.status}`
-              );
+          const targetDate = `${year}-${month}-${day}`;
+          const targetMonth = `${year}-${month}`;
+
+          results[period.id] = allData.filter((record) => {
+            if (settings.graphPeriod === "day") {
+              return record.datetime.slice(0, 10) === targetDate;
             }
 
-            const data: SensorData[] =
-              await response.json();
+            if (settings.graphPeriod === "month") {
+              return record.datetime.slice(0, 7) === targetMonth;
+            }
 
-            results[period.id] = data;
-          })
-        );
+            return record.datetime.slice(0, 4) === year;
+          });
+        }
 
         if (!cancelled) {
           setSensorData(results);
@@ -456,52 +456,52 @@ if (settings.graphPeriod === "day") {
 
   // 相関図のグラフ設定
   // 相関図のグラフ設定
-const getCorrelationChartOption = (
-  axes: CorrelationAxes,
-  series: ScatterSeries[]
-) => {
-  return {
-    grid: {
-      left: 60,
-      right: 20,
-      top: 10,
-      bottom: 90,
-    },
-
-    xAxis: {
-      type: "value" as const,
-      ...getAxisRange(axes.x),
-
-      name: `${getSensorNameByValue(
-        axes.x
-      )} [${getSensorUnit(axes.x)}]`,
-
-      nameLocation: "middle" as const,
-      nameGap: 25,
-
-      axisLabel: {
-        formatter: getAxisLabelFormatter(axes.x),
+  const getCorrelationChartOption = (
+    axes: CorrelationAxes,
+    series: ScatterSeries[]
+  ) => {
+    return {
+      grid: {
+        left: 60,
+        right: 20,
+        top: 10,
+        bottom: 90,
       },
-    },
 
-    yAxis: {
-      type: "value" as const,
-      ...getAxisRange(axes.y),
+      xAxis: {
+        type: "value" as const,
+        ...getAxisRange(axes.x),
 
-      name: `${getSensorNameByValue(
-        axes.y
-      )} [${getSensorUnit(axes.y)}]`,
+        name: `${getSensorNameByValue(
+          axes.x
+        )} [${getSensorUnit(axes.x)}]`,
 
-      nameLocation: "middle" as const,
-      nameGap: 35,
-      axisLabel: {
-        formatter: getAxisLabelFormatter(axes.y),
+        nameLocation: "middle" as const,
+        nameGap: 25,
+
+        axisLabel: {
+          formatter: getAxisLabelFormatter(axes.x),
+        },
       },
-    },
 
-    series,
+      yAxis: {
+        type: "value" as const,
+        ...getAxisRange(axes.y),
+
+        name: `${getSensorNameByValue(
+          axes.y
+        )} [${getSensorUnit(axes.y)}]`,
+
+        nameLocation: "middle" as const,
+        nameGap: 35,
+        axisLabel: {
+          formatter: getAxisLabelFormatter(axes.y),
+        },
+      },
+
+      series,
+    };
   };
-};
 
   const axes = getCorrelationAxes();
 
@@ -541,43 +541,43 @@ const getCorrelationChartOption = (
     );
 
   return (
-  <div className="correlation-chart-area">
-    {isLoading ? (
-      <div className="correlation-chart-message">
-        <div className="compare-spinner" />
-        データを取得中...
-      </div>
-    ) : hasError ? (
-      <div className="correlation-chart-message">
-        データを取得できませんでした
-      </div>
-    ) : settings.periods.length === 0 ? (
-      <div className="correlation-chart-message">
-        比較する期間を選択してください
-      </div>
-    ) : (
-      <div className="correlation-chart-with-overlay">
-        <ReactECharts
-          option={getCorrelationChartOption(
-            axes,
-            series
-          )}
-          notMerge
-          style={{
-            width: "100%",
-            height: "450px",
-          }}
-        />
+    <div className="correlation-chart-area">
+      {isLoading ? (
+        <div className="correlation-chart-message">
+          <div className="compare-spinner" />
+          データを取得中...
+        </div>
+      ) : hasError ? (
+        <div className="correlation-chart-message">
+          データを取得できませんでした
+        </div>
+      ) : settings.periods.length === 0 ? (
+        <div className="correlation-chart-message">
+          比較する期間を選択してください
+        </div>
+      ) : (
+        <div className="correlation-chart-with-overlay">
+          <ReactECharts
+            option={getCorrelationChartOption(
+              axes,
+              series
+            )}
+            notMerge
+            style={{
+              width: "100%",
+              height: "450px",
+            }}
+          />
 
-        {hasNoData && (
-          <div className="compare-error-overlay">
-            <div className="compare-error-card">
-              <p>データがありません。</p>
+          {hasNoData && (
+            <div className="compare-error-overlay">
+              <div className="compare-error-card">
+                <p>データがありません。</p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-);
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
