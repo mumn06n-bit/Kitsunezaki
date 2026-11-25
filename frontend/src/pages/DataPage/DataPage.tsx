@@ -501,8 +501,8 @@ export default function DataPage() {
         <section className="sensor-data-area">
           <div
             className={`data-row ${doStatus.stale && !wholePageError && !showFetchError
-              ? "has-stale-message"
-              : ""
+                ? "has-stale-message"
+                : ""
               }`}
           >
             <div>
