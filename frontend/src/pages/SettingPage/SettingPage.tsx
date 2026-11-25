@@ -119,7 +119,7 @@ export default function SettingPage() {
             value={salinity}
             onChange={(e) => setSalinity(e.target.value)}
           >
-            {Array.from({ length: 11 }, (_, i) => {
+            {Array.from({ length: 16 }, (_, i) => {
               const value = 25 + i;
               return (
                 <option key={value} value={value}>
@@ -139,9 +139,9 @@ export default function SettingPage() {
           >
 
 
-            {Array.from({ length: 21 }, (_, i) => {
-              // 0.2刻みで 3.5mg/Lから7.5mg/Lまでの値を生成(小数点第一位まで表示)
-              const value = (3.5 + i * 0.2).toFixed(1);
+            {Array.from({ length: 31 }, (_, i) => {
+              // 0.1刻みで 4.0mg/Lから7.0mg/Lまでの値を生成(小数点第一位まで表示)
+              const value = (4.0 + i * 0.1).toFixed(1);
               return (
                 <option key={value} value={value}>
                   {value}mg/L

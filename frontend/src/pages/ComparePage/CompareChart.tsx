@@ -6,7 +6,6 @@ import {
     type CompareSettings,
 } from "@/pages/ComparePage/compareData";
 import "./CompareChart.css";
-import { fetchSensorData } from "@/services/sensorData";
 
 type SensorData = {
     datetime: string;
@@ -127,9 +126,24 @@ export default function CompareChart({
     };
 
     // 選択した期間のデータを取得
-
     useEffect(() => {
         let cancelled = false;
+
+        const getDateQuery = (
+            period: CompareSettings["periods"][number]
+        ) => {
+            const year = period.year;
+            const month = String(period.month).padStart(2, "0");
+            const day = String(period.day).padStart(2, "0");
+
+            if (graphPeriod === "day") {
+                return `${year}-${month}-${day}`;
+            } else if (graphPeriod === "month") {
+                return `${year}-${month}`;
+            } else {
+                return String(year);
+            }
+        };
 
         if (periods.length === 0) {
             setSensorData({});
@@ -145,31 +159,26 @@ export default function CompareChart({
         setHasError(false);
 
         const fetchData = async () => {
+            const results: Record<number, SensorData[]> = {};
+
             try {
-                const allData = await fetchSensorData();
+                await Promise.all(
+                    periods.map(async (period) => {
+                        const date = getDateQuery(period);
+                        const response = await fetch(
+                            `/api/sensors?date=${date}`
+                        );
 
-                const results: Record<number, SensorData[]> = {};
-
-                for (const period of periods) {
-                    const year = String(period.year);
-                    const month = String(period.month).padStart(2, "0");
-                    const day = String(period.day).padStart(2, "0");
-
-                    const targetDate = `${year}-${month}-${day}`;
-                    const targetMonth = `${year}-${month}`;
-
-                    results[period.id] = allData.filter((record) => {
-                        if (graphPeriod === "day") {
-                            return record.datetime.slice(0, 10) === targetDate;
+                        if (!response.ok) {
+                            throw new Error(
+                                `API error: ${response.status}`
+                            );
                         }
 
-                        if (graphPeriod === "month") {
-                            return record.datetime.slice(0, 7) === targetMonth;
-                        }
-
-                        return record.datetime.slice(0, 4) === year;
-                    });
-                }
+                        const data: SensorData[] = await response.json();
+                        results[period.id] = data;
+                    })
+                );
 
                 if (!cancelled) {
                     setSensorData(results);
@@ -195,7 +204,6 @@ export default function CompareChart({
             cancelled = true;
         };
     }, [graphPeriod, periods]);
-
 
     // 横軸ラベル
     const labels = useMemo(
